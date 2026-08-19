@@ -2,6 +2,29 @@
 
 This document records meaningful product and implementation changes to Listen Direct.
 
+## 2026-08-19 — DevSecOps baseline
+
+### Added
+
+- Added a local, dependency-free secret scanner and npm security scripts.
+- Added hardened response headers and no-store API responses.
+- Added a process-local login failure limit of five attempts per IP-and-email pair per 15 minutes.
+- Added least-privilege GitHub CI with lockfile installation, secret scanning, dependency auditing, and production builds.
+- Added CodeQL extended JavaScript/TypeScript analysis on pull requests, main-branch pushes, and a weekly schedule.
+- Added weekly Dependabot updates for npm and GitHub Actions.
+- Pinned every workflow action to a verified full commit SHA.
+- Added a pull-request security checklist and private vulnerability disclosure policy.
+- Added `docs/devsecops.md` with operating instructions and production requirements.
+
+### Verified
+
+- The repository secret scan passes.
+- The production dependency audit reports zero vulnerabilities.
+- The Nuxt production build completes successfully.
+- Runtime responses include the configured security headers.
+- Five invalid sign-in attempts return 401 and the sixth returns 429.
+- The secured production build hydrates, authenticates, and opens the dashboard without console warnings or errors.
+
 ## 2026-08-19 — Cookie controls, privacy, and terms
 
 ### Added

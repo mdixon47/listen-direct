@@ -92,10 +92,25 @@ The current cookie inventory is:
 
 No analytics provider is connected yet. The Privacy Policy and Terms of Use describe the current prototype accurately, but they are product drafts—not legal advice—and require operator details, governing terms, vendor disclosures, and qualified legal review before a production launch.
 
+## DevSecOps
+
+The repository includes a security baseline for local development and GitHub:
+
+- `npm run security:secrets` scans source files for high-confidence credentials and unsafe secret filenames.
+- `npm run security:audit` fails on high or critical npm advisories.
+- GitHub CI installs the lockfile with lifecycle scripts disabled, scans for secrets, audits production dependencies, and builds the application.
+- CodeQL runs extended JavaScript and TypeScript security queries on pushes, pull requests, and a weekly schedule.
+- Dependabot checks npm packages and pinned GitHub Actions weekly.
+- Runtime middleware adds CSP, anti-framing, MIME-sniffing, referrer, permissions, cross-origin, and HSTS headers.
+- Login failures are limited to five attempts per IP-and-email pair in a 15-minute window.
+
+See [`docs/devsecops.md`](docs/devsecops.md) for repository settings, deployment requirements, and the limits of the prototype controls.
+
 ## Project documentation
 
 - [`docs/updates.md`](docs/updates.md) — completed changes and verification history
 - [`docs/issues.md`](docs/issues.md) — known limitations, risks, and recommended fixes
 - [`docs/learn.md`](docs/learn.md) — product, architecture, and commercialization lessons
+- [`docs/devsecops.md`](docs/devsecops.md) — security gates, GitHub controls, and deployment checklist
 
 Create a production build with `npm run build`, or generate a static deployment with `npm run generate`.

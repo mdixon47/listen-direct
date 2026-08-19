@@ -22,11 +22,11 @@ Authentication, sealed sessions, and demo/user/admin role gates are implemented.
 
 **Next work:** replace fixture accounts with a database or external identity provider, add workspace membership, and define granular permissions beyond the current role checks.
 
-### No login rate limiting or lockout
+### Login throttling is process-local
 
-The login endpoint validates credentials securely but does not throttle repeated attempts.
+The login endpoint now limits failed attempts per IP-and-email pair, but the counters live in one server process. They are not shared between instances and reset when the process restarts. Forwarded IP handling also assumes the deployment has a trusted reverse proxy.
 
-**Next work:** add IP- and identity-based rate limiting, exponential backoff, audit events, and optional multi-factor authentication for administrators.
+**Next work:** move counters to a shared store, configure trusted proxy boundaries, add exponential backoff and audit events, and require multi-factor authentication for administrators.
 
 ### Privacy controls are not enforced
 
@@ -77,6 +77,18 @@ Recent-turn table rows use click handlers but are not keyboard-focusable control
 Nuxt 4.5.2 expects Node.js 22.19+, 24.11+, or 26+. The project build succeeded in the current Node.js 25 environment, but npm reports an engine warning.
 
 **Recommended fix:** use Node.js 24 LTS locally and in CI, or Node.js 26+ when available in the deployment environment.
+
+### Content Security Policy permits inline code and styles
+
+The runtime CSP blocks third-party origins, framing, and plugins, but Nuxt hydration and the current component styling require `'unsafe-inline'` for scripts and styles.
+
+**Recommended fix:** introduce per-request CSP nonces or hashes, move remaining inline styles to classes, verify hydration under the stricter policy, and then remove both inline allowances.
+
+### Repository secret scanning is intentionally narrow
+
+The local scanner catches private-key material, common token formats, and sensitive filenames without uploading source code. It cannot identify every vendor token or determine whether all high-entropy strings are secrets.
+
+**Recommended fix:** enable GitHub secret scanning and push protection, extend patterns for future vendors, and keep deployment secrets in the hosting platform's secret manager.
 
 ## Commercial and operational gaps
 
