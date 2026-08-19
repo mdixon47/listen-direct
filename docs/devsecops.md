@@ -71,6 +71,7 @@ Repository files cannot enable every platform protection. After pushing, configu
 ## Production deployment checklist
 
 - Configure the production `NUXT_PUBLIC_SUPABASE_URL` and Supabase publishable key. These values are browser-visible identifiers, not administrator secrets.
+- On Netlify, do not add `SUPABASE_SECRET_KEY` or a service-role key. The application does not use an admin client; authorization is enforced through user sessions and Row Level Security. The committed Netlify configuration omits only the expected public Supabase URL/key from value scanning and leaves secret scanning enabled for all private variables.
 - Never expose a Supabase secret key or legacy service-role key in Nuxt public configuration or a browser bundle.
 - Apply database migrations through a protected deployment identity and review every row-level security policy before launch.
 - Enable administrator MFA, verified email, password recovery, workspace invitations, and account-deletion handling.

@@ -4,6 +4,7 @@ node_modules/
 # Nuxt and Nitro generated output
 .nuxt/
 .output/
+.netlify/
 .nitro/
 .data/
 dist/

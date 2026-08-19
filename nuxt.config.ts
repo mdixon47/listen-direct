@@ -7,6 +7,11 @@ export default defineNuxtConfig({
     redirect: false,
     useSsrCookies: true,
     types: '~/types/database.types.ts',
+    // Every query runs as the signed-in user and is protected by RLS. Explicitly
+    // disable admin credentials so a hosting environment cannot bake an unused
+    // Supabase secret or service-role key into the server bundle.
+    serviceKey: '',
+    secretKey: '',
     cookieOptions: {
       maxAge: 60 * 60 * 8,
       sameSite: 'lax',

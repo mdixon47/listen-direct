@@ -1,0 +1,4 @@
+[build.environment]
+  # These values are intentionally public and required by the browser client.
+  # Secret scanning remains enabled for every genuinely private variable.
+  SECRETS_SCAN_OMIT_KEYS = "NUXT_PUBLIC_SUPABASE_URL,NUXT_PUBLIC_SUPABASE_KEY,SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY"

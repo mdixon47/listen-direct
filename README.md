@@ -76,6 +76,8 @@ supabase db push
 
 The local `.env` file is ignored by Git. Never expose a Supabase secret key or legacy service-role key in Nuxt public configuration.
 
+For Netlify, configure the same two public values as `NUXT_PUBLIC_SUPABASE_URL` and `NUXT_PUBLIC_SUPABASE_KEY`. Do not configure `SUPABASE_SECRET_KEY` or a service-role key: all application queries run as the signed-in user and are authorized by Row Level Security. The committed `netlify.toml` keeps secret scanning enabled while excluding only the browser-safe URL and publishable key from value matching.
+
 The workspace is already linked to the hosted `listen-direct` Supabase project. The commands above are primarily for a fresh clone or a different Supabase project.
 
 ## Authentication
