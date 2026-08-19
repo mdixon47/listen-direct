@@ -1,0 +1,19 @@
+.demo-paused .signal span,
+.demo-paused .live i {
+  animation-play-state: paused;
+}
+
+.footer-legal {
+  display: flex;
+  gap: 18px;
+}
+
+.footer-legal a:hover {
+  color: var(--lime);
+}
+
+@media (max-width: 760px) {
+  .footer-legal {
+    order: 3;
+  }
+}

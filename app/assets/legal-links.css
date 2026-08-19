@@ -1,0 +1,44 @@
+.login-legal,
+.sidebar-legal,
+.admin-legal {
+  display: flex;
+  gap: 14px;
+}
+
+.login-legal {
+  margin-top: 9px;
+}
+
+.login-legal a {
+  color: #aab5a8;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-size: 8px;
+}
+
+.sidebar-legal {
+  padding: 14px 4px 0;
+}
+
+.sidebar-legal a,
+.admin-legal a {
+  color: #687368;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  font: 700 7px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.sidebar-legal a:hover,
+.admin-legal a:hover {
+  color: #c6ff4a;
+}
+
+.admin-legal {
+  margin-top: auto;
+  padding: 14px 4px;
+  border-bottom: 1px solid #dff4d51b;
+}
+
+.admin-legal + .admin-profile {
+  margin-top: 0;
+}
