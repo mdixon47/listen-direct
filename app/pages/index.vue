@@ -31,6 +31,7 @@ const modes: Record<ModeName, { title: string; stages: Stage[]; noteTitle: strin
 }
 
 const roadmap = [
+  { number: '01', category: 'RELIABILITY', title: 'Adaptive routing', copy: 'Use audio-native reasoning by default and fall back to the transcript stack only when the request calls for it.', risk: 'Not every model, language, duration, or deployment policy can safely take the direct audio path on every turn.', mechanism: 'Check model capability, policy, duration, and route health before choosing direct audio or the proven STT fallback.', proof: 'Measure fallback rate, route latency, errors, and paired response quality so richer listening never comes at the cost of reliability.', tags: ['Capability check', 'Direct first', 'Safe fallback'] },
   { number: '02', category: 'OBSERVABILITY', title: 'Shadow transcripts', copy: 'Generate an optional transcript beside the direct path for captions, debugging, and audit—without making it the model’s input.', risk: 'Audio-only incidents are difficult to search and compare, while adding a transcript to the reasoning path changes the system being measured.', mechanism: 'Create a consent-aware transcript beside the request, align it to the audio and latency trace, and keep it out of the model input.', proof: 'A side-by-side replay shows exactly where vocal meaning survived, where text flattened it, and which route produced the better response.', tags: ['Latency trace', 'Consent-aware logs', 'Side-by-side replay'] },
   { number: '03', category: 'TURN TAKING', title: 'Semantic end-of-turn', copy: 'Combine silence with intonation and meaning so the agent knows the difference between a pause and a finished thought.', risk: 'Silence-only detection cuts off reflective speakers, misses hesitation, and creates awkward dead air when thresholds are too conservative.', mechanism: 'Score silence together with pitch contour, syntax, and conversational context before releasing a completed turn to the model.', proof: 'Track false cutoffs, interruption recovery, and time to first response. Better turn detection lowers all three without making the agent impatient.', tags: ['Fewer false cuts', 'Faster first token', 'Natural backchannels'] },
   { number: '04', category: 'EVALUATION', title: 'Audio-native evals', copy: 'Benchmark direct audio against STT across pitch, pace, accents, noise, laughter, interruptions, and multilingual turns.', risk: 'Text-only tests cannot reveal when an audio model loses sarcasm, uncertainty, urgency, laughter, or meaning carried by pronunciation.', mechanism: 'Replay the same consented voice corpus through direct and cascaded paths, then score perception, response quality, latency, and safety.', proof: 'Paired results become regression gates, making model upgrades measurable instead of relying on a handful of impressive demos.', tags: ['Paired test runner', 'Perception score', 'Regression gates'] },
@@ -188,25 +189,20 @@ useHead({
     <section id="roadmap" class="roadmap shell">
       <div class="section-kicker">02 / WHAT'S NEXT</div>
       <div class="section-head roadmap-head"><h2>Build the trust layer<br>around the magic.</h2><p>The strongest next move is not another demo. It is making direct listening observable, comparable, and safe to deploy.</p></div>
-      <article class="priority-card trust-animated">
-        <div class="priority-rank">NEXT<br><strong>01</strong></div>
-        <div class="priority-copy"><span>SHIP FIRST · RELIABILITY</span><h3>Adaptive dual-path routing</h3><p>Run audio-native by default, fall back to STT when a model, language, duration, or confidence threshold calls for it. Teams get the richer path without losing operational reliability.</p></div>
-        <div class="priority-flow" aria-label="Animated adaptive route example">
-          <div class="route-node route-input"><span>VOICE TURN</span><b>audio.wav</b></div><i class="route-arrow route-arrow-in">→</i>
-          <div class="decision route-node"><span>ROUTER</span><b>direct?</b><em>capability + policy</em></div><i class="route-arrow route-arrow-primary">↗</i>
-          <div class="route-node route-primary"><span>PRIMARY</span><b>Audio model</b></div><i class="route-arrow route-arrow-fallback">↘</i>
-          <div class="route-node route-fallback"><span>FALLBACK</span><b>STT + LLM</b></div>
-        </div>
-      </article>
       <div class="roadmap-walkthrough" :class="{ 'is-paused': roadmapPaused }">
         <div class="roadmap-walkthrough-topline">
           <span>TRUST LAYER WALKTHROUGH</span>
           <button :aria-label="roadmapPaused ? 'Play trust layer animation' : 'Pause trust layer animation'" @click="roadmapPaused = !roadmapPaused"><i aria-hidden="true">{{ roadmapPaused ? '▶' : 'Ⅱ' }}</i>{{ roadmapPaused ? 'PLAY' : 'AUTO' }} · {{ activeRoadmapIndex + 1 }}/{{ roadmap.length }}</button>
         </div>
+        <div class="trust-selector" role="group" aria-label="Trust layer capability">
+          <button v-for="(item, index) in roadmap" :key="item.number" :class="{ 'is-active': activeRoadmapIndex === index }" :aria-pressed="activeRoadmapIndex === index" @click="selectRoadmap(index)">
+            <span>{{ item.number }} · {{ item.category }}</span><strong>{{ item.title }}</strong>
+          </button>
+        </div>
         <Transition name="trust-story" mode="out-in">
           <div :key="activeRoadmap?.number" class="roadmap-story">
             <div class="story-number">{{ activeRoadmap?.number }}</div>
-            <div class="story-intro"><span>{{ activeRoadmap?.category }}</span><h3>{{ activeRoadmap?.title }}</h3><p>{{ activeRoadmap?.copy }}</p></div>
+            <div class="story-intro"><span>{{ activeRoadmap?.category }}</span><h3>{{ activeRoadmap?.title }}</h3><p>{{ activeRoadmap?.copy }}</p><ul><li v-for="tag in activeRoadmap?.tags" :key="tag">{{ tag }}</li></ul></div>
             <div class="story-details">
               <div><span>01 / THE RISK</span><p>{{ activeRoadmap?.risk }}</p></div>
               <div><span>02 / THE MECHANISM</span><p>{{ activeRoadmap?.mechanism }}</p></div>
@@ -215,11 +211,6 @@ useHead({
           </div>
         </Transition>
         <div :key="`${activeRoadmapIndex}-${roadmapPaused}`" class="roadmap-progress" aria-hidden="true"><i /></div>
-      </div>
-      <div class="roadmap-grid">
-        <button v-for="(item, index) in roadmap" :key="item.number" class="roadmap-card" :class="{ 'future-card': item.future, 'is-active': activeRoadmapIndex === index }" :aria-pressed="activeRoadmapIndex === index" @click="selectRoadmap(index)">
-          <div class="card-meta"><span>{{ item.number }}</span><b>{{ item.category }}</b></div><h3>{{ item.title }}</h3><p>{{ item.copy }}</p><ul><li v-for="tag in item.tags" :key="tag">{{ tag }}</li></ul>
-        </button>
       </div>
     </section>
 
