@@ -7,7 +7,7 @@ useHead({
 
 <template>
   <main class="legal-page">
-    <nav><NuxtLink class="legal-brand" to="/"><span><i /><i /><i /></span>LISTEN<strong>/DIRECT</strong></NuxtLink><div><NuxtLink to="/privacy">Privacy Policy</NuxtLink><NuxtLink to="/login">Sign in</NuxtLink></div></nav>
+    <nav><NuxtLink class="legal-brand" to="/"><span><i /><i /><i /></span>LISTEN<strong>/DIRECT</strong></NuxtLink><div><NuxtLink to="/privacy">Privacy Policy</NuxtLink><NuxtLink to="/help">Help Center</NuxtLink><NuxtLink to="/login">Sign in</NuxtLink></div></nav>
     <header><span>LEGAL / TERMS</span><h1>Terms of Use</h1><p>Effective August 19, 2026 · Demo version 1.0</p></header>
     <div class="legal-layout">
       <aside><a href="#agreement">Agreement</a><a href="#demo">Demo service</a><a href="#accounts">Accounts</a><a href="#acceptable">Acceptable use</a><a href="#voice">Voice and AI</a><a href="#ownership">Ownership</a><a href="#services">Third parties</a><a href="#warranty">Disclaimers</a><a href="#liability">Liability</a><a href="#ending">Termination</a></aside>
@@ -25,7 +25,7 @@ useHead({
         <section id="ending"><span>10</span><h2>Suspension, termination, and governing terms</h2><p>Access may be suspended for security risks, misuse, legal requirements, or material breach. Users may stop using the demo at any time and clear their session by signing out.</p><p>Before production, the deploying entity must add its legal identity, governing law, venue, dispute process, contact method, notice procedure, and any order-form or subscription terms. Changes should be communicated with an updated effective date.</p></section>
       </article>
     </div>
-    <footer><span>Listen Direct · Terms version 1.0</span><NuxtLink to="/privacy">Read Privacy Policy →</NuxtLink></footer>
+    <footer><span>Listen Direct · Terms version 1.0</span><NuxtLink to="/help">Help Center</NuxtLink><NuxtLink to="/privacy">Read Privacy Policy →</NuxtLink></footer>
   </main>
 </template>
 

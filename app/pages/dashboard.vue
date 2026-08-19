@@ -222,7 +222,7 @@ useHead({
         <div><span class="status-dot" /> System operational</div>
         <small>99.98% · last 30 days</small>
       </div>
-      <div class="sidebar-legal"><NuxtLink to="/privacy">Privacy</NuxtLink><NuxtLink to="/terms">Terms</NuxtLink></div>
+      <div class="sidebar-legal"><NuxtLink to="/help">Help</NuxtLink><NuxtLink to="/privacy">Privacy</NuxtLink><NuxtLink to="/terms">Terms</NuxtLink></div>
       <div class="profile"><span>{{ initials }}</span><div><strong>{{ user?.name }}</strong><small>{{ user?.role.toUpperCase() }}</small></div><button aria-label="Sign out" title="Sign out" @click="logout">↗</button></div>
     </aside>
 

@@ -117,7 +117,7 @@ useHead({
           <button class="login-submit" type="submit" :disabled="loading">{{ loading ? 'Working…' : mode === 'signin' ? 'Enter workspace' : 'Create secure account' }} <span>→</span></button>
         </form>
 
-        <div class="credential-note"><span>SECURE IDENTITY</span><p>Passwords are handled by Supabase Auth. Listen Direct stores workspace roles and product data behind row-level security.</p><div class="login-legal"><NuxtLink to="/privacy">Privacy Policy</NuxtLink><NuxtLink to="/terms">Terms of Use</NuxtLink></div></div>
+        <div class="credential-note"><span>SECURE IDENTITY</span><p>Passwords are handled by Supabase Auth. Listen Direct stores workspace roles and product data behind row-level security.</p><div class="login-legal"><NuxtLink to="/help">Help Center</NuxtLink><NuxtLink to="/privacy">Privacy Policy</NuxtLink><NuxtLink to="/terms">Terms of Use</NuxtLink></div></div>
       </div>
     </section>
   </main>

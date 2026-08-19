@@ -127,7 +127,7 @@ useHead({
   <main :class="{ 'demo-paused': demoPaused }">
     <nav class="nav shell" aria-label="Primary navigation">
       <a class="brand" href="#top" aria-label="Listen Direct home"><span class="brand-mark"><i /><i /><i /></span>LISTEN<span>/DIRECT</span></a>
-      <div class="nav-links"><a href="#architecture">Architecture</a><a href="#roadmap">Roadmap</a><a href="#pricing">Pricing</a></div>
+      <div class="nav-links"><a href="#architecture">Architecture</a><a href="#roadmap">Roadmap</a><a href="#pricing">Pricing</a><NuxtLink to="/help">Help</NuxtLink></div>
       <NuxtLink class="nav-cta" to="/dashboard">Open dashboard <span>↗</span></NuxtLink>
     </nav>
 
@@ -244,6 +244,6 @@ useHead({
         <div class="closing-cta-copy"><p>Open a protected workspace, compare both paths, and decide where direct listening earns its place.</p><div><NuxtLink class="primary-button" to="/login?mode=signup">Start free <span>→</span></NuxtLink><NuxtLink class="secondary-button" to="/dashboard">Open dashboard ↗</NuxtLink></div></div>
       </div>
     </section>
-    <footer class="footer shell"><a class="brand" href="#top"><span class="brand-mark"><i /><i /><i /></span>LISTEN<span>/DIRECT</span></a><p>Speech should carry more than words.</p><div class="footer-legal"><NuxtLink to="/privacy">PRIVACY</NuxtLink><NuxtLink to="/terms">TERMS</NuxtLink></div><a href="#top">BACK TO TOP ↑</a></footer>
+    <footer class="footer shell"><a class="brand" href="#top"><span class="brand-mark"><i /><i /><i /></span>LISTEN<span>/DIRECT</span></a><p>Speech should carry more than words.</p><div class="footer-legal"><NuxtLink to="/help">HELP</NuxtLink><NuxtLink to="/privacy">PRIVACY</NuxtLink><NuxtLink to="/terms">TERMS</NuxtLink></div><a href="#top">BACK TO TOP ↑</a></footer>
   </main>
 </template>

@@ -41,7 +41,7 @@ useHead({ title: 'Administration · Listen Direct' })
       <NuxtLink class="admin-brand" to="/"><span><i /><i /><i /></span>LISTEN<strong>/DIRECT</strong></NuxtLink>
       <p>PLATFORM ADMINISTRATION</p>
       <nav><NuxtLink to="/admin" class="active"><span>01</span>Identity overview</NuxtLink><NuxtLink to="/dashboard"><span>02</span>Voice operations</NuxtLink></nav>
-      <div class="admin-legal"><NuxtLink to="/privacy">Privacy</NuxtLink><NuxtLink to="/terms">Terms</NuxtLink></div><div class="admin-profile"><span>{{ initials }}</span><div><strong>{{ user?.name }}</strong><small>{{ user?.email }}</small></div><button @click="logout">Sign out</button></div>
+      <div class="admin-legal"><NuxtLink to="/help">Help</NuxtLink><NuxtLink to="/privacy">Privacy</NuxtLink><NuxtLink to="/terms">Terms</NuxtLink></div><div class="admin-profile"><span>{{ initials }}</span><div><strong>{{ user?.name }}</strong><small>{{ user?.email }}</small></div><button @click="logout">Sign out</button></div>
     </aside>
 
     <main>
