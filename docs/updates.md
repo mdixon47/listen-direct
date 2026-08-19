@@ -2,6 +2,46 @@
 
 This document records meaningful product and implementation changes to Listen Direct.
 
+## 2026-08-19 — Documentation and handoff refresh
+
+### Changed
+
+- Expanded `README.md` with the current implementation status, hosted Supabase state, completed verification, and remaining production work.
+- Clarified that the Supabase migration and Auth configuration are live while the updated Nuxt source still requires commit, push, and redeployment.
+- Added production handoff guidance for SMTP, recovery flows, invitations, administrator MFA, legacy-key rotation, monitoring, backups, legal review, and live audio integration.
+
+### Current handoff state
+
+- The local `.env` is ignored and contains only the Supabase project URL and publishable browser key.
+- No Supabase secret or service-role key is required by the application.
+- The repository changes are intentionally left uncommitted for the next commit-and-deploy step.
+
+## 2026-08-19 — Supabase authentication and persistence
+
+### Added
+
+- Replaced static development identities with Supabase email/password authentication and self-service registration.
+- Added organization, profile, membership, voice-session, voice-turn, data-policy, and audit-event database tables.
+- Added a signup trigger that provisions each new account with a workspace, administrator membership, and default policy.
+- Added row-level security policies and least-privilege grants for demo, user, and administrator roles.
+- Added server-verified current-user, signup, sign-in, sign-out, workspace, member-directory, voice-turn, and data-policy endpoints.
+- Persisted generated voice turns and privacy-policy settings for user and administrator accounts; demo-role turns remain session-only.
+- Added Supabase environment placeholders and CI build configuration without requiring a service-role key.
+
+### Verified
+
+- The Nuxt production build completes with non-production Supabase placeholders.
+- Nitro bundles the Supabase server helpers in one chunk without circular dependency warnings.
+- Server routes compile against the generated database types.
+- A clean local Supabase reset applies the migration and reports no schema lint errors.
+- Local end-to-end tests pass for registration, email confirmation, login, SSR cookies, workspace provisioning, admin access, persisted turns, and policy updates.
+- Demo-role writes are rejected by both the Nuxt APIs and direct PostgREST access under row-level security.
+- The hosted `listen-direct` project is linked, the migration is applied, local and remote migration histories match, and remote schema lint reports no errors.
+- Hosted Auth uses the deployed Listen Direct URL as its site URL and permits the deployed and local-development redirect URLs.
+- Hosted Auth requires email confirmation and a minimum 12-character password, matching the application validation.
+- The ignored local `.env` contains only the hosted project URL and publishable key; no service-role key is required.
+- Type checking, production build, repository secret scan, and production dependency audit pass.
+
 ## 2026-08-19 — DevSecOps baseline
 
 ### Added
@@ -46,7 +86,7 @@ This document records meaningful product and implementation changes to Listen Di
 - `npm run build` completes successfully.
 - Browser verification reported no console warnings or errors.
 
-## 2026-08-19 — Role-based authentication
+## 2026-08-19 — Initial role-based authentication (superseded)
 
 ### Added
 
@@ -60,6 +100,8 @@ This document records meaningful product and implementation changes to Listen Di
 - Added a protected user overview API to demonstrate server-enforced sessions.
 - Added role-aware workspace, profile, sign-out, demo, and administration states in the dashboard.
 - Added `.env.example` guidance for the session-encryption secret.
+
+This fixture-based implementation was subsequently replaced by the Supabase authentication and persistence layer documented above.
 
 ### Verified
 

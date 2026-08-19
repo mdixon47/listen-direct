@@ -1,10 +1,11 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { basename, extname, join, relative } from 'node:path'
+import { execFileSync } from 'node:child_process'
 
 const root = new URL('../', import.meta.url).pathname
 const ignoredDirectories = new Set([
   '.git', '.nuxt', '.output', '.nitro', '.data', 'node_modules',
-  'coverage', 'dist', 'outputs', 'work',
+  '.temp', '.branches', 'coverage', 'dist', 'outputs', 'work',
 ])
 const blockedExtensions = new Set(['.key', '.pem', '.p12', '.pfx'])
 const blockedNames = [/^\.env(?:\..+)?$/, /^credentials.*\.json$/i, /^service-account.*\.json$/i]
@@ -17,6 +18,15 @@ const contentPatterns = [
   ['GitHub token', new RegExp('gh' + '[pousr]_[A-Za-z0-9]{36,255}')],
   ['API secret', new RegExp('sk-' + '(?:proj-)?[A-Za-z0-9_-]{24,}')],
 ]
+
+function isGitIgnored(path) {
+  try {
+    execFileSync('git', ['check-ignore', '--quiet', '--', path], { cwd: root, stdio: 'ignore' })
+    return true
+  } catch {
+    return false
+  }
+}
 
 function visit(directory) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -35,7 +45,7 @@ function visit(directory) {
     const fileName = basename(entry.name)
     const isBlockedName = blockedNames.some(pattern => pattern.test(fileName))
     if (!allowedNames.has(fileName) && (isBlockedName || blockedExtensions.has(extname(fileName)))) {
-      findings.push(`${projectPath}: sensitive filename should not be committed`)
+      if (!isGitIgnored(absolutePath)) findings.push(`${projectPath}: sensitive filename is not ignored by Git`)
       continue
     }
 

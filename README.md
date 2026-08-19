@@ -1,6 +1,16 @@
 # Listen Direct
 
-Nuxt 4 recreation of the Listen Direct site.
+Listen Direct is a Nuxt 4 product prototype for operating reliable, privacy-aware, audio-native AI applications. The repository now includes a Supabase-backed identity and persistence layer in addition to the marketing site and operations dashboard.
+
+## Current project status
+
+- The Nuxt application, dashboard, authentication flows, legal pages, and DevSecOps baseline are implemented in this workspace.
+- The hosted Supabase `listen-direct` project is linked and its initial database migration is applied.
+- Registration requires email confirmation and a password of at least 12 characters.
+- User and administrator accounts persist generated voice turns and data-policy settings; demo-role writes are blocked by the API and database.
+- Local type checking, production builds, schema linting, secret scanning, dependency auditing, and end-to-end Supabase tests pass.
+- The current source changes still need to be committed, pushed, and redeployed before they replace the existing public `chatgpt.site` build.
+- Microphone capture, realtime audio-model calls, billing, production SMTP, recovery flows, invitations, and administrator MFA remain future work.
 
 ## What it is
 
@@ -45,28 +55,42 @@ A practical initial offer is: **“Add reliable audio-native AI to your applicat
 
 Requires Node.js 22.19+, 24.11+, or 26+.
 
+Recommended local runtime: Node.js 24 LTS.
+
 ## Run locally
 
 ```bash
 npm install
+cp .env.example .env
 npm run dev
 ```
 
 Then open <http://localhost:3000>.
 
+Set `NUXT_PUBLIC_SUPABASE_URL` and `NUXT_PUBLIC_SUPABASE_KEY` in `.env` using the project URL and publishable key from the Supabase dashboard. Apply the committed database migration before creating the first account:
+
+```bash
+supabase link --project-ref YOUR_PROJECT_REF
+supabase db push
+```
+
+The local `.env` file is ignored by Git. Never expose a Supabase secret key or legacy service-role key in Nuxt public configuration.
+
+The workspace is already linked to the hosted `listen-direct` Supabase project. The commands above are primarily for a fresh clone or a different Supabase project.
+
 ## Authentication
 
-Listen Direct uses `nuxt-auth-utils` sealed, HTTP-only cookie sessions. The dashboard requires authentication, server APIs independently verify sessions, and the admin directory requires the `admin` role.
+Listen Direct uses Supabase Auth with server-side rendering cookie support. Email/password sign-in and registration are available at `/login`; sensitive server endpoints independently resolve the signed-in user and enforce workspace roles. New registrations create a workspace, profile, default data policy, and administrator membership through a database trigger.
 
-Development accounts:
+Authorization uses three workspace roles:
 
-| Role | Email | Password | Access |
-| --- | --- | --- | --- |
-| Demo | `demo@listen.direct` | `demo1234` | Temporary dashboard sandbox |
-| User | `user@listen.direct` | `user1234` | Standard voice-operations dashboard |
-| Admin | `admin@listen.direct` | `admin1234` | Dashboard and protected administration area |
+| Role | Access |
+| --- | --- |
+| Demo | Read-only policies and session-only simulated turns |
+| User | Persistent voice turns and policy management |
+| Admin | User access plus the protected workspace identity directory |
 
-For deployment, set a unique `NUXT_SESSION_PASSWORD` containing at least 32 characters. See `.env.example`; never commit the real value. The included identities are development fixtures and must be replaced with a database or external identity provider before production.
+PostgreSQL row-level security limits profiles, memberships, turns, policies, and audit records to the appropriate signed-in workspace. The application never requires a service-role key.
 
 ## Application routes
 
@@ -77,7 +101,7 @@ For deployment, set a unique `NUXT_SESSION_PASSWORD` containing at least 32 char
 - `/privacy` — privacy policy, cookie inventory, voice-data notice, and user choices
 - `/terms` — acceptable-use, account, voice/AI, disclaimer, and service terms
 
-The dashboard currently uses realistic local demo data and client-side simulations. Connecting live microphone capture, model APIs, persistent storage, and billing requires additional backend integrations.
+The dashboard still simulates microphone capture and model responses, but signed-in user and administrator accounts now persist generated voice-turn records and data-policy settings in Supabase PostgreSQL. Live audio, model APIs, aggregate metrics, evaluations, and billing require additional backend integrations.
 
 ## Cookies and legal notices
 
@@ -87,7 +111,7 @@ The current cookie inventory is:
 
 | Cookie | Purpose | Duration |
 | --- | --- | --- |
-| `nuxt-session` | Sealed authentication and role session | 2 hours for demo; 8 hours for users/admins |
+| `sb-<project-ref>-auth-token` (may be chunked) | Supabase authentication session | Up to 8 hours per application cookie |
 | `ld-cookie-preferences` | Remembers essential-only or analytics choice | 180 days |
 
 No analytics provider is connected yet. The Privacy Policy and Terms of Use describe the current prototype accurately, but they are product drafts—not legal advice—and require operator details, governing terms, vendor disclosures, and qualified legal review before a production launch.
@@ -114,3 +138,13 @@ See [`docs/devsecops.md`](docs/devsecops.md) for repository settings, deployment
 - [`docs/devsecops.md`](docs/devsecops.md) — security gates, GitHub controls, and deployment checklist
 
 Create a production build with `npm run build`, or generate a static deployment with `npm run generate`.
+
+Run `npm run typecheck` to validate Vue, Nuxt, and server TypeScript before building.
+
+## Before production
+
+1. Commit, push, and deploy the current Nuxt source with the Supabase public environment variables configured on the hosting platform.
+2. Configure a production SMTP provider and test confirmation and recovery emails end to end.
+3. Add password recovery, account deletion, workspace invitations, and administrator MFA.
+4. Rotate or disable unused legacy Supabase JWT keys and continue using only the publishable key in browser-facing configuration.
+5. Complete legal review, monitoring, backups, distributed rate limiting, incident response, and live audio-provider integration.

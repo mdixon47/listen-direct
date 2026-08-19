@@ -16,6 +16,24 @@ type Turn = {
   transcript: string
 }
 
+type AppUser = {
+  id: string
+  name: string
+  email: string
+  role: 'demo' | 'user' | 'admin'
+  workspace: string
+  organizationId: string
+}
+
+type DataPolicy = {
+  shadow_transcripts: boolean
+  consent_logging: boolean
+  acoustic_signals: boolean
+  raw_audio_retention_hours: number
+  version: number
+  updated_at: string
+}
+
 const navigation: { id: ViewName; label: string; hint: string }[] = [
   { id: 'overview', label: 'Live overview', hint: '01' },
   { id: 'sessions', label: 'Sessions', hint: '02' },
@@ -37,21 +55,24 @@ const evaluationSuites = [
   { title: 'Turn boundaries', score: 97, runs: 516, change: '+0.6%' },
 ]
 
-const recentTurns = ref<Turn[]>([
-  { id: 'turn_8f21', time: '14:32:08', duration: '2.8s', route: 'Direct', model: 'Inkling Audio', latency: '482ms', signal: 'Elevated pitch', status: 'Complete', transcript: 'Can you tell that I’m asking this in a higher pitch?' },
-  { id: 'turn_8f20', time: '14:31:44', duration: '6.1s', route: 'Direct', model: 'Inkling Audio', latency: '526ms', signal: 'Low energy', status: 'Complete', transcript: 'Summarize the open incidents and tell me which one is most urgent.' },
-  { id: 'turn_8f19', time: '14:30:19', duration: '11.4s', route: 'Fallback', model: 'STT + LLM', latency: '891ms', signal: 'Background noise', status: 'Flagged', transcript: 'Reschedule the review for tomorrow afternoon and notify the team.' },
-  { id: 'turn_8f18', time: '14:28:51', duration: '3.7s', route: 'Direct', model: 'Gemma 4 Audio', latency: '611ms', signal: 'Laughter', status: 'Complete', transcript: 'That was definitely not the answer I expected.' },
-])
+const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
+const { data: identity } = await useFetch<{ user: AppUser }>('/api/auth/me', { headers: requestHeaders })
+const { data: persistedTurns } = await useFetch<{ turns: Turn[] }>('/api/voice/turns', { headers: requestHeaders })
+const { data: persistedPolicy } = await useFetch<{ policy: DataPolicy }>('/api/data-policy', { headers: requestHeaders })
+
+const recentTurns = ref<Turn[]>(persistedTurns.value?.turns ?? [])
 
 const activeView = ref<ViewName>('overview')
-const { user, clear } = useUserSession()
+const user = computed(() => identity.value?.user)
 const routeMode = ref<RouteMode>('adaptive')
 const selectedModel = ref('Inkling Audio')
-const shadowTranscripts = ref(true)
-const consentLogging = ref(true)
-const acousticSignals = ref(true)
-const retention = ref('24 hours')
+const shadowTranscripts = ref(persistedPolicy.value?.policy.shadow_transcripts ?? true)
+const consentLogging = ref(persistedPolicy.value?.policy.consent_logging ?? true)
+const acousticSignals = ref(persistedPolicy.value?.policy.acoustic_signals ?? true)
+const retention = ref(({ 0: 'Transient only', 1: '1 hour', 24: '24 hours', 168: '7 days' } as Record<number, string>)[persistedPolicy.value?.policy.raw_audio_retention_hours ?? 24] ?? '24 hours')
+const policySaving = ref(false)
+const policyStatus = ref('Policies active')
+const turnError = ref('')
 const recording = ref(false)
 const processing = ref(false)
 const elapsedTenths = ref(0)
@@ -70,8 +91,8 @@ const initials = computed(() => user.value?.name.split(' ').map(part => part[0])
 const isDemo = computed(() => user.value?.role === 'demo')
 
 async function logout() {
-  await clear()
-  await navigateTo('/login')
+  await $fetch('/api/auth/logout', { method: 'POST' })
+  await navigateTo('/login', { external: true })
 }
 
 function toggleRecording() {
@@ -94,21 +115,71 @@ function finishTurn() {
   timer = null
   processing.value = true
 
-  setTimeout(() => {
+  setTimeout(async () => {
     processing.value = false
-    recentTurns.value.unshift({
-      id: `turn_${Math.random().toString(16).slice(2, 6)}`,
-      time: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      duration: elapsed.value,
-      route: routeMode.value === 'standard' ? 'Fallback' : 'Direct',
-      model: routeMode.value === 'standard' ? 'STT + LLM' : selectedModel.value,
-      latency: routeMode.value === 'standard' ? '842ms' : '496ms',
-      signal: 'Natural cadence',
-      status: 'Complete',
-      transcript: shadowTranscripts.value ? 'Shadow transcript generated beside the audio-native reasoning path.' : 'Transcript disabled for this turn.',
-    })
+    const durationMs = elapsedTenths.value * 100
+    turnError.value = ''
+
+    if (isDemo.value) {
+      recentTurns.value.unshift({
+        id: `demo_${crypto.randomUUID().slice(0, 8)}`,
+        time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        duration: `${(durationMs / 1000).toFixed(1)}s`,
+        route: routeMode.value === 'standard' ? 'Fallback' : 'Direct',
+        model: routeMode.value === 'standard' ? 'STT + LLM' : selectedModel.value,
+        latency: routeMode.value === 'standard' ? '842ms' : '496ms',
+        signal: 'Natural cadence',
+        status: 'Complete',
+        transcript: shadowTranscripts.value ? 'Demo transcript generated locally for this session.' : 'Transcript disabled for this turn.',
+      })
+      elapsedTenths.value = 0
+      return
+    }
+
+    try {
+      const result = await $fetch<{ turn: Turn }>('/api/voice/turns', {
+        method: 'POST',
+        body: {
+          durationMs,
+          route: routeMode.value === 'standard' ? 'fallback' : 'direct',
+          model: routeMode.value === 'standard' ? 'STT + LLM' : selectedModel.value,
+          latencyMs: routeMode.value === 'standard' ? 842 : 496,
+          signal: 'Natural cadence',
+          status: 'complete',
+          transcript: shadowTranscripts.value ? 'Shadow transcript generated beside the audio-native reasoning path.' : null,
+          acousticSignals: acousticSignals.value ? { cadence: 'natural' } : {},
+        },
+      })
+      recentTurns.value.unshift(result.turn)
+    } catch {
+      turnError.value = 'The simulated turn completed but could not be persisted.'
+    }
+
     elapsedTenths.value = 0
   }, 700)
+}
+
+async function savePolicy() {
+  policySaving.value = true
+  policyStatus.value = 'Saving…'
+  const retentionHours = ({ 'Transient only': 0, '1 hour': 1, '24 hours': 24, '7 days': 168 } as Record<string, number>)[retention.value] ?? 24
+
+  try {
+    await $fetch('/api/data-policy', {
+      method: 'PATCH',
+      body: {
+        shadowTranscripts: shadowTranscripts.value,
+        consentLogging: consentLogging.value,
+        acousticSignals: acousticSignals.value,
+        rawAudioRetentionHours: retentionHours,
+      },
+    })
+    policyStatus.value = 'Policy saved'
+  } catch {
+    policyStatus.value = 'Unable to save policy'
+  } finally {
+    policySaving.value = false
+  }
 }
 
 function showTurn(turn: Turn) {
@@ -166,7 +237,8 @@ useHead({
         </div>
       </header>
 
-      <div v-if="isDemo" class="demo-banner"><div><span>DEMO SANDBOX</span><strong>Explore safely—changes and voice turns exist only for this session.</strong></div><button @click="logout">Exit demo</button></div>
+      <div v-if="isDemo" class="demo-banner"><div><span>DEMO SANDBOX</span><strong>Explore safely—new voice turns remain in this browser session and policies are read-only.</strong></div><button @click="logout">Exit demo</button></div>
+      <p v-if="turnError" class="persistence-error" role="alert">{{ turnError }}</p>
 
       <template v-if="activeView === 'overview'">
         <section class="metric-grid" aria-label="Current performance">
@@ -227,7 +299,7 @@ useHead({
       </template>
 
       <template v-else>
-        <section class="registry-intro panel"><div><span>ACOUSTIC DATA CONTROLS</span><h2>Keep the signal. Control the footprint.</h2><p>Define what is retained, logged, redacted, and exposed to downstream applications.</p></div><span class="saved-state"><i /> Policies active</span></section>
+        <section class="registry-intro panel"><div><span>ACOUSTIC DATA CONTROLS</span><h2>Keep the signal. Control the footprint.</h2><p>Define what is retained, logged, redacted, and exposed to downstream applications.</p></div><div class="policy-actions"><span class="saved-state"><i /> {{ policyStatus }}</span><button class="session-button" :disabled="policySaving || isDemo" @click="savePolicy">Save policy</button></div></section>
         <section class="control-grid">
           <article class="control-card panel"><div><span>SHADOW TRANSCRIPTS</span><button class="mini-toggle" :class="{ on: shadowTranscripts }" @click="shadowTranscripts = !shadowTranscripts"><i /></button></div><h3>Generate text beside the direct path</h3><p>Use captions and debugging text without making it the model’s input.</p></article>
           <article class="control-card panel"><div><span>CONSENT-AWARE LOGGING</span><button class="mini-toggle" :class="{ on: consentLogging }" @click="consentLogging = !consentLogging"><i /></button></div><h3>Respect session consent state</h3><p>Store traces only when the client has supplied a valid consent signal.</p></article>
@@ -303,6 +375,26 @@ useHead({
   letter-spacing: .09em;
   font: 700 8px ui-monospace, SFMono-Regular, Menlo, monospace;
   cursor: pointer;
+}
+
+.persistence-error {
+  border: 1px solid #ff80664a;
+  background: #ff80660c;
+  color: #ff9c88;
+  margin: 18px 0 0;
+  padding: 11px 14px;
+  font-size: 10px;
+}
+
+.policy-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.policy-actions .session-button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
 }
 
 @media (max-width: 760px) {

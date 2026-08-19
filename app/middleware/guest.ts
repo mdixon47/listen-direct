@@ -1,7 +1,5 @@
 export default defineNuxtRouteMiddleware(() => {
-  const { loggedIn, user } = useUserSession()
+  const user = useSupabaseUser()
 
-  if (loggedIn.value) {
-    return navigateTo(user.value?.role === 'admin' ? '/admin' : '/dashboard')
-  }
+  if (user.value) return navigateTo('/dashboard')
 })

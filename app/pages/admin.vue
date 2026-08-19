@@ -9,8 +9,10 @@ type AdminUser = {
   workspace: string
 }
 
-const { user, clear } = useUserSession()
-const { data, status, error, refresh } = await useFetch<{ users: AdminUser[]; generatedAt: string }>('/api/admin/users')
+const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
+const { data: identity } = await useFetch<{ user: AdminUser & { organizationId: string } }>('/api/auth/me', { headers: requestHeaders })
+const user = computed(() => identity.value?.user)
+const { data, status, error, refresh } = await useFetch<{ users: AdminUser[]; generatedAt: string }>('/api/admin/users', { headers: requestHeaders })
 
 const auditEvents = [
   { time: '14:42:18', actor: 'Platform Admin', action: 'Updated retention policy', scope: 'Production', result: 'Applied' },
@@ -21,9 +23,13 @@ const auditEvents = [
 
 const initials = computed(() => user.value?.name.split(' ').map(part => part[0]).join('').slice(0, 2) ?? 'AD')
 
+async function refreshUsers() {
+  await refresh()
+}
+
 async function logout() {
-  await clear()
-  await navigateTo('/login')
+  await $fetch('/api/auth/logout', { method: 'POST' })
+  await navigateTo('/login', { external: true })
 }
 
 useHead({ title: 'Administration · Listen Direct' })
@@ -39,12 +45,12 @@ useHead({ title: 'Administration · Listen Direct' })
     </aside>
 
     <main>
-      <header><div><span>ADMIN / IDENTITY</span><h1>Access control</h1></div><div><button @click="refresh">↻ Refresh</button><NuxtLink to="/dashboard">Open operations →</NuxtLink></div></header>
+      <header><div><span>ADMIN / IDENTITY</span><h1>Access control</h1></div><div><button @click="refreshUsers">↻ Refresh</button><NuxtLink to="/dashboard">Open operations →</NuxtLink></div></header>
 
-      <section class="admin-metrics"><article><span>TOTAL IDENTITIES</span><strong>{{ data?.users.length ?? 0 }}</strong><p>Across all environments</p></article><article><span>ACTIVE ROLES</span><strong>3</strong><p>Demo · User · Admin</p></article><article><span>SESSION POLICY</span><strong>8h</strong><p>Demo sessions expire in 2h</p></article><article><span>AUTH HEALTH</span><strong class="healthy">100%</strong><p>Sealed-cookie verification</p></article></section>
+      <section class="admin-metrics"><article><span>TOTAL IDENTITIES</span><strong>{{ data?.users.length ?? 0 }}</strong><p>Current Supabase workspace</p></article><article><span>ACTIVE ROLES</span><strong>3</strong><p>Demo · User · Admin</p></article><article><span>SESSION POLICY</span><strong>8h</strong><p>SSR cookie maximum age</p></article><article><span>AUTH HEALTH</span><strong class="healthy">RLS</strong><p>Supabase JWT verification</p></article></section>
 
       <section class="admin-panel users-panel">
-        <div class="panel-title"><div><span>IDENTITY DIRECTORY</span><strong>Development accounts</strong></div><small>{{ status === 'pending' ? 'Loading…' : 'Role gates active' }}</small></div>
+        <div class="panel-title"><div><span>IDENTITY DIRECTORY</span><strong>Supabase workspace members</strong></div><small>{{ status === 'pending' ? 'Loading…' : 'RLS gates active' }}</small></div>
         <p v-if="error" class="error">Unable to load the protected user directory.</p>
         <div v-else class="admin-table"><table><thead><tr><th>Identity</th><th>Role</th><th>Workspace</th><th>Session</th><th>Status</th></tr></thead><tbody><tr v-for="account in data?.users" :key="account.id"><td><span>{{ account.name.split(' ').map(part => part[0]).join('') }}</span><div><strong>{{ account.name }}</strong><small>{{ account.email }}</small></div></td><td><b :class="account.role">{{ account.role }}</b></td><td>{{ account.workspace }}</td><td>{{ account.role === 'demo' ? '2 hours' : '8 hours' }}</td><td><i /> Active</td></tr></tbody></table></div>
       </section>

@@ -20,7 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      NUXT_SESSION_PASSWORD: ci-only-session-password-not-used-at-runtime-2026
+      NUXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NUXT_PUBLIC_SUPABASE_KEY: sb_publishable_ci_placeholder
 
     steps:
       - name: Check out repository
@@ -41,5 +42,8 @@ jobs:
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
 
-      - name: Build production application
+      - name: Type-check Nuxt application
+        run: npm run typecheck
+
+      - name: Build production application with non-production Supabase placeholders
         run: npm run build

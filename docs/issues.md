@@ -10,17 +10,17 @@ The dashboard does not currently capture microphone input, run voice-activity de
 
 **Next work:** implement browser audio capture with `getUserMedia`, an AudioWorklet, a streaming transport, server-side session management, and a supported realtime model API.
 
-### Operational data has no persistence
+### Operational data is only partially persistent
 
-Sessions, policies, model selections, and metrics exist only in browser memory and reset on refresh.
+Supabase now persists generated voice turns and data-policy settings for user and administrator accounts. Live sessions, model selections, aggregate metrics, evaluations, and demo-role turns are still simulated or browser-local.
 
-**Next work:** add a database, durable session/event storage, protected mutation APIs, and a background metrics pipeline.
+**Next work:** persist session lifecycle and routing events, add a background metrics pipeline, and connect model/evaluation records to actual provider runs.
 
-### Authentication uses development identities
+### Account lifecycle is incomplete
 
-Authentication, sealed sessions, and demo/user/admin role gates are implemented. The three identities are static development fixtures, however, and there is no self-service registration, password recovery, account lifecycle, or durable identity store.
+Supabase Auth, self-service registration, persistent profiles, workspace membership, and demo/user/admin role gates are implemented. Password recovery, email-change UX, invitations, administrator MFA, membership management, account deletion, and session management are not yet exposed in the application.
 
-**Next work:** replace fixture accounts with a database or external identity provider, add workspace membership, and define granular permissions beyond the current role checks.
+**Next work:** add password-recovery UX, production SMTP, administrator MFA, workspace invitations, granular permissions, and auditable account deletion.
 
 ### Login throttling is process-local
 
@@ -28,9 +28,9 @@ The login endpoint now limits failed attempts per IP-and-email pair, but the cou
 
 **Next work:** move counters to a shared store, configure trusted proxy boundaries, add exponential backoff and audit events, and require multi-factor authentication for administrators.
 
-### Privacy controls are not enforced
+### Privacy controls are only partly enforced
 
-Retention, consent, acoustic-signal, and shadow-transcript settings currently update the UI only. They do not control real storage or processing behavior.
+Retention, consent, acoustic-signal, and shadow-transcript settings persist in Supabase, and simulated turn records honor transcript/acoustic-signal choices. No live audio pipeline or deletion worker currently enforces raw-audio retention.
 
 **Next work:** enforce policies on the server, attach policy versions to every turn, create deletion jobs, and produce auditable events.
 

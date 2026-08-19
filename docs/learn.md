@@ -69,9 +69,13 @@ Retention and consent cannot be dashboard-only settings. The server should snaps
 
 ### Authentication and authorization are separate controls
 
-A sealed session proves who is making a request; it does not prove that the person may perform every action. Page middleware improves navigation, while each sensitive server endpoint must independently enforce its required role or permission.
+A verified authentication session proves who is making a request; it does not prove that the person may perform every action. Page middleware improves navigation, while each sensitive server endpoint and database query must independently enforce its required role or permission.
 
-The current implementation therefore protects the admin page in the client and protects the admin directory again on the server.
+The current implementation therefore protects the admin page in the client, protects the admin directory again on the server, and uses PostgreSQL row-level security as the final workspace boundary.
+
+### Public browser keys are not administrator keys
+
+The Supabase publishable key identifies the project and is designed for browser use when row-level security is enabled. Secret and legacy service-role keys bypass normal client authorization and must never appear in Nuxt public configuration, committed files, or browser bundles.
 
 ### Model capabilities should be data, not conditionals
 

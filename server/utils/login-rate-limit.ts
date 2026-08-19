@@ -39,7 +39,7 @@ export function assertLoginAllowed(event: H3Event, email: string) {
   if (!bucket || bucket.failures < MAX_FAILURES) return
 
   const retryAfter = Math.max(1, Math.ceil((bucket.resetAt - Date.now()) / 1000))
-  setResponseHeader(event, 'Retry-After', String(retryAfter))
+  setResponseHeader(event, 'Retry-After', retryAfter)
   throw createError({
     statusCode: 429,
     statusMessage: 'Too many sign-in attempts. Try again later.',

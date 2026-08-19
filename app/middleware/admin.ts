@@ -1,7 +1,8 @@
-export default defineNuxtRouteMiddleware(() => {
-  const { user } = useUserSession()
+export default defineNuxtRouteMiddleware(async () => {
+  const supabaseUser = useSupabaseUser()
+  if (!supabaseUser.value) return navigateTo('/login')
 
-  if (user.value?.role !== 'admin') {
-    return navigateTo('/dashboard')
-  }
+  const headers = import.meta.server ? useRequestHeaders(['cookie']) : undefined
+  const result = await $fetch<{ user: { role: 'demo' | 'user' | 'admin' } }>('/api/auth/me', { headers })
+  if (result.user.role !== 'admin') return navigateTo('/dashboard')
 })
