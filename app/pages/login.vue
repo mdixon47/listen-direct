@@ -17,7 +17,7 @@ const options: AuthOption[] = [
 
 const route = useRoute()
 const credentials = reactive({ email: '', password: '', fullName: '', organizationName: '' })
-const mode = ref<AuthMode>('signin')
+const mode = ref<AuthMode>(route.query.mode === 'signup' ? 'signup' : 'signin')
 const loading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')

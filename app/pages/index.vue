@@ -46,6 +46,12 @@ const sequence = [
   { timing: 'LATER · 60—90 DAYS', title: 'Go end to end', copy: 'Privacy controls, acoustic memory, and native audio output.' },
 ]
 
+const pricingPlans = [
+  { name: 'Explore', eyebrow: 'START HERE', price: '$0', cadence: '/ month', usage: '$0.07 / platform min', description: 'Prove the direct-listening path before you put it in front of real users.', features: ['100 platform minutes included', 'One protected workspace', 'Direct + cascaded comparison', '7-day session history'], cta: 'Start exploring', featured: false },
+  { name: 'Build', eyebrow: 'SHIP WITH CONFIDENCE', price: '$59', cadence: '/ month', usage: '$0.05 / platform min', description: 'For teams routing production voice turns and measuring what each path preserves.', features: ['Three production environments', 'Shadow transcripts + traces', '30-day comparison history', 'Email implementation support'], cta: 'Start building', featured: true },
+  { name: 'Scale', eyebrow: 'OPERATE AT VOLUME', price: '$299', cadence: '/ month', usage: '$0.035 / platform min', description: 'For growing voice products that need stronger controls, evaluation, and support.', features: ['Unlimited environments', 'Audio-native evaluation suite', '90-day policy + audit history', 'Priority support + volume pricing'], cta: 'Request scale access', featured: false },
+]
+
 const waveHeights = [18, 34, 58, 30, 72, 46, 84, 40, 64, 28, 52, 20, 42, 24, 16]
 const currentMode = ref<ModeName>('direct')
 const demoPaused = ref(false)
@@ -121,7 +127,7 @@ useHead({
   <main :class="{ 'demo-paused': demoPaused }">
     <nav class="nav shell" aria-label="Primary navigation">
       <a class="brand" href="#top" aria-label="Listen Direct home"><span class="brand-mark"><i /><i /><i /></span>LISTEN<span>/DIRECT</span></a>
-      <div class="nav-links"><a href="#architecture">Architecture</a><a href="#roadmap">Roadmap</a></div>
+      <div class="nav-links"><a href="#architecture">Architecture</a><a href="#roadmap">Roadmap</a><a href="#pricing">Pricing</a></div>
       <NuxtLink class="nav-cta" to="/dashboard">Open dashboard <span>↗</span></NuxtLink>
     </nav>
 
@@ -215,6 +221,29 @@ useHead({
     </section>
 
     <section class="build-order shell"><div class="section-kicker">03 / RECOMMENDED SEQUENCE</div><div class="order-grid"><div v-for="item in sequence" :key="item.timing"><span>{{ item.timing }}</span><strong>{{ item.title }}</strong><p>{{ item.copy }}</p></div></div></section>
+    <section id="pricing" class="pricing shell">
+      <div class="section-kicker">04 / EARLY ACCESS PRICING</div>
+      <div class="section-head pricing-head"><h2>Start small.<br>Pay as you listen.</h2><p>A predictable platform fee for routing, policy, and observability. Bring your own model providers or pay their usage at cost.</p></div>
+      <div class="pricing-grid">
+        <article v-for="plan in pricingPlans" :key="plan.name" class="pricing-card" :class="{ featured: plan.featured }">
+          <div class="pricing-meta"><span>{{ plan.eyebrow }}</span><b v-if="plan.featured">MOST POPULAR</b></div>
+          <h3>{{ plan.name }}</h3>
+          <div class="plan-price"><strong>{{ plan.price }}</strong><span>{{ plan.cadence }}</span></div>
+          <p>{{ plan.description }}</p>
+          <div class="usage-rate"><span>PLATFORM USAGE</span><strong>{{ plan.usage }}</strong></div>
+          <ul><li v-for="feature in plan.features" :key="feature"><i>✓</i>{{ feature }}</li></ul>
+          <NuxtLink :class="{ primary: plan.featured }" :to="`/login?mode=signup&plan=${plan.name.toLowerCase()}`">{{ plan.cta }} <span>→</span></NuxtLink>
+        </article>
+      </div>
+      <p class="pricing-note"><span>PRICING NOTE</span> Model inference, speech synthesis, transcription, and telephony are separate provider costs. Bring your own keys or use transparent pass-through billing. Early-access rates may change before general availability.</p>
+    </section>
+
+    <section class="closing-cta">
+      <div class="shell closing-cta-inner">
+        <div><span>READY TO LISTEN DIRECT?</span><h2>Keep the voice.<br><em>Lose the translation layer.</em></h2></div>
+        <div class="closing-cta-copy"><p>Open a protected workspace, compare both paths, and decide where direct listening earns its place.</p><div><NuxtLink class="primary-button" to="/login?mode=signup">Start free <span>→</span></NuxtLink><NuxtLink class="secondary-button" to="/dashboard">Open dashboard ↗</NuxtLink></div></div>
+      </div>
+    </section>
     <footer class="footer shell"><a class="brand" href="#top"><span class="brand-mark"><i /><i /><i /></span>LISTEN<span>/DIRECT</span></a><p>Speech should carry more than words.</p><div class="footer-legal"><NuxtLink to="/privacy">PRIVACY</NuxtLink><NuxtLink to="/terms">TERMS</NuxtLink></div><a href="#top">BACK TO TOP ↑</a></footer>
   </main>
 </template>
