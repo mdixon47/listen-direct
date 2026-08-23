@@ -126,18 +126,18 @@ useHead({
 <template>
   <main :class="{ 'demo-paused': demoPaused }">
     <nav class="nav shell" aria-label="Primary navigation">
-      <a class="brand" href="#top" aria-label="Listen Direct home"><span class="brand-mark"><i /><i /><i /></span>LISTEN<span>/DIRECT</span></a>
+      <a class="brand" href="#top" aria-label="Listen Direct home"><span class="brand-mark"><i /><i /><i /></span><b>LISTEN<span>/DIRECT</span></b></a>
       <div class="nav-links"><a href="#architecture">Architecture</a><a href="#roadmap">Roadmap</a><a href="#pricing">Pricing</a><NuxtLink to="/help">Help</NuxtLink></div>
-      <NuxtLink class="nav-cta" to="/dashboard">Open dashboard <span>↗</span></NuxtLink>
+      <NuxtLink class="nav-cta" to="/dashboard?demo=1">Try instant demo <span>↗</span></NuxtLink>
     </nav>
 
     <section id="top" class="hero shell">
       <div class="eyebrow"><span /> Open voice infrastructure</div>
       <h1>The model doesn’t<br>read your voice.<br><em>It hears it.</em></h1>
       <p class="hero-copy">Make transcription optional. Send each completed voice turn straight to an audio-input model—then stream the answer back as speech.</p>
-      <div class="hero-actions"><a class="primary-button" href="#architecture">See how it works <span>↓</span></a><code>--stt none</code></div>
-      <div class="listen-card" aria-label="Live audio model demonstration">
-        <div class="listen-meta"><span class="live"><i /> LIVE INPUT</span><span>INKLING · AUDIO NATIVE</span></div>
+      <div class="hero-actions"><NuxtLink class="primary-button" to="/dashboard?demo=1">Launch instant demo <span>→</span></NuxtLink><a class="secondary-button" href="#architecture">See how it works ↓</a></div>
+      <div class="listen-card" aria-label="Interactive audio-native product simulation">
+        <div class="listen-meta"><span class="live"><i /> INTERACTIVE SIMULATION</span><span>REPRESENTATIVE · AUDIO NATIVE</span></div>
         <div class="listen-main">
           <button class="play" :aria-label="demoPaused ? 'Resume demo visualization' : 'Pause demo visualization'" @click="demoPaused = !demoPaused"><span /></button>
           <div class="signal" aria-hidden="true"><span v-for="height in waveHeights" :key="height" :style="{ height: `${height}%` }" /></div>
@@ -190,7 +190,7 @@ useHead({
       </div>
     </section>
 
-    <section class="realtime-band" aria-label="Realtime capabilities"><div class="shell realtime-inner"><div><span>OPENAI REALTIME COMPATIBLE</span><strong>Same protocol. More ways to listen.</strong></div><ul><li><i /> Streaming</li><li><i /> Cancellation</li><li><i /> Barge-in</li></ul></div></section>
+    <section class="realtime-band" aria-label="Realtime capabilities"><div class="shell realtime-inner"><div><span>REALTIME PROTOCOL TARGET</span><strong>Same interaction model. More ways to listen.</strong></div><ul><li><i /> Streaming</li><li><i /> Cancellation</li><li><i /> Barge-in</li></ul></div></section>
 
     <section id="roadmap" class="roadmap shell">
       <div class="section-kicker">02 / WHAT'S NEXT</div>
@@ -224,6 +224,7 @@ useHead({
     <section id="pricing" class="pricing shell">
       <div class="section-kicker">04 / EARLY ACCESS PRICING</div>
       <div class="section-head pricing-head"><h2>Start small.<br>Pay as you listen.</h2><p>A predictable platform fee for routing, policy, and observability. Bring your own model providers or pay their usage at cost.</p></div>
+      <div class="pricing-preview"><span>PRICING PREVIEW</span><p>Billing and usage metering are not active in the current product simulation. These tiers describe the intended early-access offer.</p></div>
       <div class="pricing-grid">
         <article v-for="plan in pricingPlans" :key="plan.name" class="pricing-card" :class="{ featured: plan.featured }">
           <div class="pricing-meta"><span>{{ plan.eyebrow }}</span><b v-if="plan.featured">MOST POPULAR</b></div>
@@ -241,9 +242,9 @@ useHead({
     <section class="closing-cta">
       <div class="shell closing-cta-inner">
         <div><span>READY TO LISTEN DIRECT?</span><h2>Keep the voice.<br><em>Lose the translation layer.</em></h2></div>
-        <div class="closing-cta-copy"><p>Open a protected workspace, compare both paths, and decide where direct listening earns its place.</p><div><NuxtLink class="primary-button" to="/login?mode=signup">Start free <span>→</span></NuxtLink><NuxtLink class="secondary-button" to="/dashboard">Open dashboard ↗</NuxtLink></div></div>
+        <div class="closing-cta-copy"><p>Explore the workflow instantly, compare both paths, and decide where direct listening earns its place.</p><div><NuxtLink class="primary-button" to="/dashboard?demo=1">Try instant demo <span>→</span></NuxtLink><NuxtLink class="secondary-button" to="/login?mode=signup">Create workspace ↗</NuxtLink></div></div>
       </div>
     </section>
-    <footer class="footer shell"><a class="brand" href="#top"><span class="brand-mark"><i /><i /><i /></span>LISTEN<span>/DIRECT</span></a><p>Speech should carry more than words.</p><div class="footer-legal"><NuxtLink to="/help">HELP</NuxtLink><NuxtLink to="/privacy">PRIVACY</NuxtLink><NuxtLink to="/terms">TERMS</NuxtLink></div><a href="#top">BACK TO TOP ↑</a></footer>
+    <footer class="footer shell"><a class="brand" href="#top"><span class="brand-mark"><i /><i /><i /></span><b>LISTEN<span>/DIRECT</span></b></a><p>Speech should carry more than words.</p><div class="footer-legal"><NuxtLink to="/help">HELP</NuxtLink><NuxtLink to="/privacy">PRIVACY</NuxtLink><NuxtLink to="/terms">TERMS</NuxtLink></div><a href="#top">BACK TO TOP ↑</a></footer>
   </main>
 </template>

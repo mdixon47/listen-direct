@@ -7,7 +7,7 @@ useHead({
 
 <template>
   <main class="legal-page">
-    <nav><NuxtLink class="legal-brand" to="/"><span><i /><i /><i /></span>LISTEN<strong>/DIRECT</strong></NuxtLink><div><NuxtLink to="/privacy">Privacy Policy</NuxtLink><NuxtLink to="/help">Help Center</NuxtLink><NuxtLink to="/login">Sign in</NuxtLink></div></nav>
+    <nav><NuxtLink class="legal-brand" to="/"><span><i /><i /><i /></span><b>LISTEN<strong>/DIRECT</strong></b></NuxtLink><div><NuxtLink to="/privacy">Privacy Policy</NuxtLink><NuxtLink to="/help">Help Center</NuxtLink><NuxtLink to="/login">Sign in</NuxtLink></div></nav>
     <header><span>LEGAL / TERMS</span><h1>Terms of Use</h1><p>Effective August 19, 2026 · Demo version 1.0</p></header>
     <div class="legal-layout">
       <aside><a href="#agreement">Agreement</a><a href="#demo">Demo service</a><a href="#accounts">Accounts</a><a href="#acceptable">Acceptable use</a><a href="#voice">Voice and AI</a><a href="#ownership">Ownership</a><a href="#services">Third parties</a><a href="#warranty">Disclaimers</a><a href="#liability">Liability</a><a href="#ending">Termination</a></aside>

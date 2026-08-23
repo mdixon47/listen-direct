@@ -5,28 +5,34 @@ This document mirrors the public `/help` experience and gives maintainers a dura
 ## Current demo scope
 
 - The dashboard does not request microphone access or transmit audio to an AI provider.
-- Starting a live turn animates the interface and creates representative turn metadata.
-- Demo-role turns remain in browser memory and disappear on refresh.
+- Starting a simulated turn animates the interface and creates representative turn metadata.
+- `/dashboard?demo=1` opens an instant guest sandbox without an account or access to protected APIs.
+- The guest sandbox begins with a three-step guided tour and seeded representative turns.
+- Guest and demo-account turns remain in browser memory and disappear on refresh.
 - Registered user and administrator accounts persist generated turn metadata and data-policy settings in Supabase.
 - The product uses Supabase authentication, server-side authorization checks, and PostgreSQL row-level security.
 
-## Roles
+## Access modes and roles
 
-| Role | Intended use | Persistence | Key restrictions |
+| Access | Intended use | Persistence | Key restrictions |
 | --- | --- | --- | --- |
-| Demo | Explore the product safely | Browser session only | Data policies are read-only |
+| Guest sandbox | Explore instantly without signing in | Browser session only | Protected APIs and workspace data are unavailable |
+| Demo account | Explore through a shared authenticated identity | Browser session only | Data policies are read-only |
 | User | Operate a workspace | Supabase | Cannot administer identities |
 | Admin | Operate and manage access | Supabase | Should use least privilege and MFA in production |
 
+Use the guest sandbox for the fastest product tour. Use the shared demo account when authentication itself is part of the walkthrough. Create a user or administrator account only when you need protected workspace persistence.
+
 ## How to run a simulated voice turn
 
-1. Sign in and open **Dashboard → Live overview**.
-2. Choose **Adaptive**, **Direct**, or **Standard** in Active route.
-3. Select **Start live turn** and let the waveform run for a few seconds.
-4. Select **End turn** and wait for processing to complete.
-5. Select the new row under Recent voice turns to inspect it in Sessions.
+1. Choose **Try instant demo** on the product page, or open `/dashboard?demo=1`.
+2. Follow **Guided start** to select Direct, generate a sample turn, and inspect the result.
+3. For a manual run, choose **Adaptive**, **Direct**, or **Standard** in Active route.
+4. Select **Start simulated turn** and let the waveform run for a few seconds.
+5. Select **End turn** and wait for processing to complete.
+6. Select the new row under Recent voice turns to inspect it in Sessions.
 
-Expected result: the turn shows its route, model, latency, duration, acoustic-signal label, completion status, and optional shadow transcript.
+Expected result: the browser-only turn shows its representative route, model, latency, duration, acoustic-signal label, completion status, and optional shadow transcript. It disappears when the guest sandbox closes.
 
 ## How to choose a routing mode
 
@@ -99,7 +105,7 @@ Production administration should add MFA, durable audit retention, alerting, acc
 1. Confirm that the chosen account type matches the account.
 2. Sign out and establish a fresh session.
 3. Allow essential site cookies and storage.
-4. For deployments, verify `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in the hosting environment.
+4. For deployments, verify `NUXT_PUBLIC_SUPABASE_URL` and `NUXT_PUBLIC_SUPABASE_KEY` in the hosting environment.
 5. Never expose a Supabase secret or service-role key to the browser.
 6. If authentication works but a route is denied, verify the profile role and workspace membership.
 
@@ -121,6 +127,7 @@ Do not disable RLS to make a failing query pass. Correct the identity, membershi
 - [ ] Persist the route reason, timings, model invocation, consent state, and policy snapshot per turn.
 - [ ] Test direct and fallback paths with paired audio-native evaluations.
 - [ ] Add rate limiting, monitoring, backups, deletion workflows, and incident response.
+- [ ] Keep guest access limited to the browser-only dashboard simulation; never use the `demo=1` query as server authorization.
 - [ ] Require MFA and least privilege for administrators.
 - [ ] Document vendors, regions, retention, pricing, and customer responsibilities.
 - [ ] Obtain security, privacy, accessibility, and legal review before launch.
@@ -136,9 +143,10 @@ Do not disable RLS to make a failing query pass. Correct the identity, membershi
 
 ## Related documents
 
-- `README.md` — product overview and local setup
-- `docs/learn.md` — product and technical lessons
-- `docs/issues.md` — known limitations and risks
-- `docs/devsecops.md` — security and delivery practices
+- [`README.md`](../README.md) — product overview and local setup
+- [`docs/learn.md`](learn.md) — product and technical lessons
+- [`docs/issues.md`](issues.md) — known limitations and risks
+- [`docs/devsecops.md`](devsecops.md) — security and delivery practices
+- [`SECURITY.md`](../SECURITY.md) — private vulnerability reporting
 - `/privacy` — current data-handling disclosure
 - `/terms` — current demo terms

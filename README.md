@@ -1,6 +1,6 @@
 # Listen Direct
 
-Listen Direct is a Nuxt 4 product prototype for operating reliable, privacy-aware, audio-native AI applications. The repository now includes a Supabase-backed identity and persistence layer in addition to the marketing site and operations dashboard.
+Listen Direct is a Nuxt 4 product prototype for operating reliable, privacy-aware, audio-native AI applications. It combines a marketing site, an honest browser-only product simulation, a Supabase-backed identity layer, and a role-aware operations dashboard.
 
 ## Current project status
 
@@ -8,6 +8,9 @@ Listen Direct is a Nuxt 4 product prototype for operating reliable, privacy-awar
 - The hosted Supabase `listen-direct` project is linked and its initial database migration is applied.
 - Registration requires email confirmation and a password of at least 12 characters.
 - User and administrator accounts persist generated voice turns and data-policy settings; demo-role writes are blocked by the API and database.
+- Visitors can launch a passwordless guest sandbox at `/dashboard?demo=1`; it uses only browser-local representative data and cannot call protected APIs.
+- The guest sandbox includes a three-step tour for choosing a route, generating a representative turn, and inspecting its evidence.
+- Simulation labels distinguish representative metrics, models, pricing, and responses from connected production services.
 - Local type checking, production builds, schema linting, secret scanning, dependency auditing, and end-to-end Supabase tests pass.
 - The current source changes still need to be committed, pushed, and redeployed before they replace the existing public `chatgpt.site` build.
 - Microphone capture, realtime audio-model calls, billing, production SMTP, recovery flows, invitations, and administrator MFA remain future work.
@@ -16,9 +19,9 @@ Listen Direct is a Nuxt 4 product prototype for operating reliable, privacy-awar
 
 Listen Direct is a concept and interactive product demo for voice-AI infrastructure. It shows how an application can send a completed voice turn directly to an audio-capable AI model instead of requiring speech-to-text first.
 
-The current Nuxt application presents and demonstrates the product concept; it does not yet include the live audio-processing backend.
+The current Nuxt application presents and demonstrates the product concept; it does not request microphone access or include a realtime audio-processing backend.
 
-## How it works
+## Intended production architecture
 
 1. The user speaks.
 2. Voice-activity detection determines when the turn ends.
@@ -26,6 +29,8 @@ The current Nuxt application presents and demonstrates the product concept; it d
 4. The model can interpret the words alongside pitch, pace, emphasis, emotion, and interruptions.
 5. The response is streamed back as speech.
 6. If direct audio processing is unavailable or unreliable, the system falls back to a speech-to-text → language model → text-to-speech pipeline.
+
+The dashboard currently simulates this sequence with representative data. No microphone audio is captured, no AI provider is called, and the pricing tiers are an early-access preview rather than active billing plans.
 
 ## Who it helps
 
@@ -67,6 +72,8 @@ npm run dev
 
 Then open <http://localhost:3000>.
 
+To explore without an account, open <http://localhost:3000/dashboard?demo=1>. The guided sandbox is browser-only and cannot read or write protected workspace APIs.
+
 Set `NUXT_PUBLIC_SUPABASE_URL` and `NUXT_PUBLIC_SUPABASE_KEY` in `.env` using the project URL and publishable key from the Supabase dashboard. Apply the committed database migration before creating the first account:
 
 ```bash
@@ -84,13 +91,14 @@ The workspace is already linked to the hosted `listen-direct` Supabase project. 
 
 Listen Direct uses Supabase Auth with server-side rendering cookie support. Email/password sign-in and registration are available at `/login`; sensitive server endpoints independently resolve the signed-in user and enforce workspace roles. New registrations create a workspace, profile, default data policy, and administrator membership through a database trigger.
 
-Authorization uses three workspace roles:
+The application provides four access paths. Guest sandbox is an experience mode, not a persisted workspace role:
 
-| Role | Access |
-| --- | --- |
-| Demo | Read-only policies and session-only simulated turns |
-| User | Persistent voice turns and policy management |
-| Admin | User access plus the protected workspace identity directory |
+| Access path | Authentication | Persistence | Access |
+| --- | --- | --- | --- |
+| Guest sandbox | None | Current browser session only | Guided representative dashboard; protected APIs unavailable |
+| Demo account | Supabase session | Simulated turns remain session-only | Read-only policies and safe product exploration |
+| User | Supabase session | Supabase | Persistent voice turns and policy management |
+| Admin | Supabase session | Supabase | User access plus the protected workspace identity directory |
 
 PostgreSQL row-level security limits profiles, memberships, turns, policies, and audit records to the appropriate signed-in workspace. The application never requires a service-role key.
 
@@ -98,8 +106,10 @@ PostgreSQL row-level security limits profiles, memberships, turns, policies, and
 
 - `/` — product landing page and architecture overview
 - `/login` — role-aware authentication
-- `/dashboard` — interactive operations dashboard for live turns, session review, model routing, audio evaluations, and acoustic-data controls
+- `/dashboard` — authenticated operations dashboard for simulated turns, session review, model routing, audio evaluations, and acoustic-data controls
+- `/dashboard?demo=1` — passwordless, browser-only guest sandbox with guided onboarding and no protected API access
 - `/admin` — administrator-only identity and audit overview
+- `/help` — detailed product guidance, how-tos, troubleshooting, and demo-scope explanations
 - `/privacy` — privacy policy, cookie inventory, voice-data notice, and user choices
 - `/terms` — acceptable-use, account, voice/AI, disclaimer, and service terms
 
@@ -129,6 +139,7 @@ The repository includes a security baseline for local development and GitHub:
 - Dependabot checks npm packages and pinned GitHub Actions weekly.
 - Runtime middleware adds CSP, anti-framing, MIME-sniffing, referrer, permissions, cross-origin, and HSTS headers.
 - Login failures are limited to five attempts per IP-and-email pair in a 15-minute window.
+- Guest mode bypasses only the `/dashboard` page middleware; server endpoints and Supabase row-level security continue to require an authenticated, authorized user.
 
 See [`docs/devsecops.md`](docs/devsecops.md) for repository settings, deployment requirements, and the limits of the prototype controls.
 
@@ -137,7 +148,9 @@ See [`docs/devsecops.md`](docs/devsecops.md) for repository settings, deployment
 - [`docs/updates.md`](docs/updates.md) — completed changes and verification history
 - [`docs/issues.md`](docs/issues.md) — known limitations, risks, and recommended fixes
 - [`docs/learn.md`](docs/learn.md) — product, architecture, and commercialization lessons
+- [`docs/help.md`](docs/help.md) — durable help-center content and operator how-tos
 - [`docs/devsecops.md`](docs/devsecops.md) — security gates, GitHub controls, and deployment checklist
+- [`SECURITY.md`](SECURITY.md) — vulnerability reporting and security scope
 
 Create a production build with `npm run build`, or generate a static deployment with `npm run generate`.
 

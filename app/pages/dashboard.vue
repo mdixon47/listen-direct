@@ -35,7 +35,7 @@ type DataPolicy = {
 }
 
 const navigation: { id: ViewName; label: string; hint: string }[] = [
-  { id: 'overview', label: 'Live overview', hint: '01' },
+  { id: 'overview', label: 'Operations overview', hint: '01' },
   { id: 'sessions', label: 'Sessions', hint: '02' },
   { id: 'models', label: 'Model registry', hint: '03' },
   { id: 'evals', label: 'Audio evals', hint: '04' },
@@ -55,12 +55,37 @@ const evaluationSuites = [
   { title: 'Turn boundaries', score: 97, runs: 516, change: '+0.6%' },
 ]
 
+const route = useRoute()
+const isGuestDemo = computed(() => route.query.demo === '1')
+const guestUser: AppUser = {
+  id: 'guest-demo',
+  name: 'Demo Explorer',
+  email: 'guest@local.demo',
+  role: 'demo',
+  workspace: 'Listen Direct Playground',
+  organizationId: 'guest-demo',
+}
+const guestDemoTurns: Turn[] = [
+  { id: 'demo_tone_01', time: '14:32:09', duration: '4.8s', route: 'Direct', model: 'Inkling Audio', latency: '496ms', signal: 'Elevated pitch', status: 'Complete', transcript: 'Can you tell that I am asking this in a higher pitch?' },
+  { id: 'demo_noise_02', time: '14:28:41', duration: '6.2s', route: 'Fallback', model: 'STT + LLM', latency: '842ms', signal: 'Background noise', status: 'Flagged', transcript: 'The representative route fell back after the confidence threshold was crossed.' },
+]
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
-const { data: identity } = await useFetch<{ user: AppUser }>('/api/auth/me', { headers: requestHeaders })
-const { data: persistedTurns } = await useFetch<{ turns: Turn[] }>('/api/voice/turns', { headers: requestHeaders })
-const { data: persistedPolicy } = await useFetch<{ policy: DataPolicy }>('/api/data-policy', { headers: requestHeaders })
+const identity = ref<{ user: AppUser } | null>(isGuestDemo.value ? { user: guestUser } : null)
+const persistedTurns = ref<{ turns: Turn[] } | null>(null)
+const persistedPolicy = ref<{ policy: DataPolicy } | null>(null)
 
-const recentTurns = ref<Turn[]>(persistedTurns.value?.turns ?? [])
+if (!isGuestDemo.value) {
+  const [identityResult, turnsResult, policyResult] = await Promise.all([
+    $fetch<{ user: AppUser }>('/api/auth/me', { headers: requestHeaders }),
+    $fetch<{ turns: Turn[] }>('/api/voice/turns', { headers: requestHeaders }),
+    $fetch<{ policy: DataPolicy }>('/api/data-policy', { headers: requestHeaders }),
+  ])
+  identity.value = identityResult
+  persistedTurns.value = turnsResult
+  persistedPolicy.value = policyResult
+}
+
+const recentTurns = ref<Turn[]>(isGuestDemo.value ? guestDemoTurns : persistedTurns.value?.turns ?? [])
 
 const activeView = ref<ViewName>('overview')
 const user = computed(() => identity.value?.user)
@@ -78,9 +103,18 @@ const processing = ref(false)
 const elapsedTenths = ref(0)
 const waveLevels = ref([22, 36, 64, 42, 76, 52, 88, 46, 70, 34, 58, 28, 48, 32, 20, 40, 62, 82, 54, 30, 68, 44, 24, 38])
 const search = ref('')
+const onboardingStep = ref(0)
+const onboardingDismissed = ref(false)
 let timer: ReturnType<typeof setInterval> | null = null
 
-const pageTitle = computed(() => navigation.find(item => item.id === activeView.value)?.label ?? 'Live overview')
+const onboardingSteps = [
+  { title: 'Choose a route', copy: 'Start with Direct so the original acoustic signal stays in the reasoning path.' },
+  { title: 'Generate a sample turn', copy: 'Create representative turn evidence without requesting microphone access.' },
+  { title: 'Inspect the result', copy: 'Open Sessions and review route, latency, signal, model, and transcript together.' },
+]
+const onboardingActions = ['Select Direct route', 'Generate sample turn', 'Inspect result']
+
+const pageTitle = computed(() => navigation.find(item => item.id === activeView.value)?.label ?? 'Operations overview')
 const visibleTurns = computed(() => {
   const query = search.value.trim().toLowerCase()
   if (!query) return recentTurns.value
@@ -88,11 +122,49 @@ const visibleTurns = computed(() => {
 })
 const elapsed = computed(() => `${(elapsedTenths.value / 10).toFixed(1)}s`)
 const initials = computed(() => user.value?.name.split(' ').map(part => part[0]).join('').slice(0, 2) ?? 'LD')
-const isDemo = computed(() => user.value?.role === 'demo')
+const isDemo = computed(() => isGuestDemo.value || user.value?.role === 'demo')
 
 async function logout() {
+  if (isGuestDemo.value) {
+    await navigateTo('/')
+    return
+  }
   await $fetch('/api/auth/logout', { method: 'POST' })
   await navigateTo('/login', { external: true })
+}
+
+function addDemoTurn(transcript = 'Demo transcript generated locally for this browser-only session.') {
+  const turn: Turn = {
+    id: `demo_${crypto.randomUUID().slice(0, 8)}`,
+    time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    duration: `${Math.max(2.8, elapsedTenths.value / 10).toFixed(1)}s`,
+    route: routeMode.value === 'standard' ? 'Fallback' : 'Direct',
+    model: routeMode.value === 'standard' ? 'STT + LLM' : selectedModel.value,
+    latency: routeMode.value === 'standard' ? '842ms' : '496ms',
+    signal: 'Natural cadence',
+    status: 'Complete',
+    transcript: shadowTranscripts.value ? transcript : 'Transcript disabled for this turn.',
+  }
+  recentTurns.value.unshift(turn)
+  return turn
+}
+
+function advanceOnboarding() {
+  if (onboardingStep.value === 0) {
+    routeMode.value = 'direct'
+    onboardingStep.value = 1
+    return
+  }
+  if (onboardingStep.value === 1) {
+    addDemoTurn('This guided sample shows the evidence available after a representative direct-audio turn.')
+    onboardingStep.value = 2
+    return
+  }
+  if (onboardingStep.value === 2) {
+    const turn = recentTurns.value[0]
+    if (turn) showTurn(turn)
+    onboardingStep.value = 3
+  }
 }
 
 function toggleRecording() {
@@ -121,17 +193,7 @@ function finishTurn() {
     turnError.value = ''
 
     if (isDemo.value) {
-      recentTurns.value.unshift({
-        id: `demo_${crypto.randomUUID().slice(0, 8)}`,
-        time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        duration: `${(durationMs / 1000).toFixed(1)}s`,
-        route: routeMode.value === 'standard' ? 'Fallback' : 'Direct',
-        model: routeMode.value === 'standard' ? 'STT + LLM' : selectedModel.value,
-        latency: routeMode.value === 'standard' ? '842ms' : '496ms',
-        signal: 'Natural cadence',
-        status: 'Complete',
-        transcript: shadowTranscripts.value ? 'Demo transcript generated locally for this session.' : 'Transcript disabled for this turn.',
-      })
+      addDemoTurn()
       elapsedTenths.value = 0
       return
     }
@@ -202,7 +264,7 @@ useHead({
     <aside class="sidebar">
       <NuxtLink class="dash-brand" to="/" aria-label="Listen Direct home">
         <span class="dash-brand-mark"><i /><i /><i /></span>
-        <span>LISTEN<strong>/DIRECT</strong></span>
+        <b>LISTEN<strong>/DIRECT</strong></b>
       </NuxtLink>
 
       <div class="workspace-switcher">
@@ -219,8 +281,8 @@ useHead({
       <NuxtLink v-if="user?.role === 'admin'" class="admin-link" to="/admin"><span>⌘</span> Administration</NuxtLink>
 
       <div class="sidebar-status">
-        <div><span class="status-dot" /> System operational</div>
-        <small>99.98% · last 30 days</small>
+        <div><span class="status-dot" /> Simulation ready</div>
+        <small>Representative environment</small>
       </div>
       <div class="sidebar-legal"><NuxtLink to="/help">Help</NuxtLink><NuxtLink to="/privacy">Privacy</NuxtLink><NuxtLink to="/terms">Terms</NuxtLink></div>
       <div class="profile"><span>{{ initials }}</span><div><strong>{{ user?.name }}</strong><small>{{ user?.role.toUpperCase() }}</small></div><button aria-label="Sign out" title="Sign out" @click="logout">↗</button></div>
@@ -232,16 +294,24 @@ useHead({
         <div class="header-actions">
           <button class="icon-button" aria-label="Notifications">●<span>2</span></button>
           <button class="session-button" :class="{ recording }" @click="toggleRecording">
-            <i />{{ recording ? `End turn · ${elapsed}` : processing ? 'Processing…' : 'Start live turn' }}
+            <i />{{ recording ? `End turn · ${elapsed}` : processing ? 'Processing…' : 'Start simulated turn' }}
           </button>
         </div>
       </header>
 
-      <div v-if="isDemo" class="demo-banner"><div><span>DEMO SANDBOX</span><strong>Explore safely—new voice turns remain in this browser session and policies are read-only.</strong></div><button @click="logout">Exit demo</button></div>
+      <div class="simulation-banner"><div><span>INTERACTIVE SIMULATION</span><strong>No microphone audio is captured and no AI provider is called. Metrics, signals, models, and responses are representative product data.</strong></div><NuxtLink to="/help#understand-the-demo">Understand the scope →</NuxtLink></div>
+      <div v-if="isGuestDemo" class="demo-banner"><div><span>GUEST SANDBOX</span><strong>No account required. New turns remain in this browser session and all protected APIs stay unavailable.</strong></div><button @click="logout">Exit sandbox</button></div>
+      <div v-else-if="isDemo" class="demo-banner"><div><span>DEMO ACCOUNT</span><strong>Explore safely—new voice turns remain in this browser session and policies are read-only.</strong></div><button @click="logout">Exit demo</button></div>
+
+      <section v-if="isGuestDemo && !onboardingDismissed" class="onboarding panel" aria-label="Demo onboarding">
+        <header><div><span>GUIDED START / {{ Math.min(onboardingStep + 1, 3) }} OF 3</span><h2>{{ onboardingStep < 3 ? 'Prove the workflow in three moves.' : 'You completed the product tour.' }}</h2></div><button aria-label="Dismiss guided start" @click="onboardingDismissed = true">×</button></header>
+        <ol><li v-for="(step, index) in onboardingSteps" :key="step.title" :class="{ active: onboardingStep === index, complete: onboardingStep > index }"><span>{{ onboardingStep > index ? '✓' : String(index + 1).padStart(2, '0') }}</span><div><strong>{{ step.title }}</strong><p>{{ step.copy }}</p></div></li></ol>
+        <footer><p v-if="onboardingStep < 3">Everything in this tour is generated locally and disappears when the sandbox closes.</p><p v-else>Your sample evidence is open in Sessions. Create a workspace when you are ready to persist operating data.</p><button v-if="onboardingStep < 3" @click="advanceOnboarding">{{ onboardingActions[onboardingStep] }} →</button><NuxtLink v-else to="/login?mode=signup">Create a protected workspace →</NuxtLink></footer>
+      </section>
       <p v-if="turnError" class="persistence-error" role="alert">{{ turnError }}</p>
 
       <template v-if="activeView === 'overview'">
-        <section class="metric-grid" aria-label="Current performance">
+        <section class="metric-grid" aria-label="Representative performance metrics">
           <article><div><span>DIRECT ROUTE RATE</span><b class="trend up">↗ 4.2%</b></div><strong>94.7<small>%</small></strong><p>12,842 of 13,561 turns</p></article>
           <article><div><span>MEDIAN LATENCY</span><b class="trend up">↓ 38ms</b></div><strong>482<small>ms</small></strong><p>Audio in → first audio out</p></article>
           <article><div><span>TURN SUCCESS</span><b class="trend up">↗ 0.6%</b></div><strong>99.2<small>%</small></strong><p>Completed without interruption</p></article>
@@ -250,14 +320,14 @@ useHead({
 
         <section class="operations-grid">
           <article class="console-card panel">
-            <div class="panel-head"><div><span>LIVE TURN CONSOLE</span><strong>{{ recording ? 'Listening now' : processing ? 'Reasoning over audio' : 'Ready for input' }}</strong></div><div class="live-state" :class="{ active: recording }"><i />{{ recording ? 'LIVE' : 'STANDBY' }}</div></div>
+            <div class="panel-head"><div><span>SIMULATED TURN CONSOLE</span><strong>{{ recording ? 'Generating representative signal' : processing ? 'Generating route evidence' : 'Ready for simulated input' }}</strong></div><div class="live-state" :class="{ active: recording }"><i />{{ recording ? 'SIMULATING' : 'STANDBY' }}</div></div>
             <div class="console-body">
-              <button class="record-orb" :class="{ recording, processing }" :aria-label="recording ? 'Stop recording' : 'Start recording'" @click="toggleRecording"><span>{{ recording ? '■' : processing ? '···' : '▶' }}</span></button>
+              <button class="record-orb" :class="{ recording, processing }" :aria-label="recording ? 'Stop simulated turn' : 'Start simulated turn'" @click="toggleRecording"><span>{{ recording ? '■' : processing ? '···' : '▶' }}</span></button>
               <div class="waveform" :class="{ recording }" aria-hidden="true"><i v-for="(level, index) in waveLevels" :key="index" :style="{ height: `${recording ? level : Math.max(12, level * 0.34)}%` }" /></div>
               <div class="duration"><strong>{{ elapsed }}</strong><span>TURN LENGTH</span></div>
             </div>
             <div class="signal-strip">
-              <div><span>INPUT</span><strong>PCM16 · 24 kHz</strong></div><div><span>ENERGY</span><strong>{{ recording ? '−18.4 dB' : '—' }}</strong></div><div><span>PITCH</span><strong>{{ recording ? 'Elevated' : '—' }}</strong></div><div><span>END-OF-TURN</span><strong>{{ recording ? 'Listening' : 'Semantic' }}</strong></div>
+              <div><span>SAMPLE FORMAT</span><strong>PCM16 · 24 kHz</strong></div><div><span>ENERGY</span><strong>{{ recording ? '−18.4 dB' : '—' }}</strong></div><div><span>PITCH</span><strong>{{ recording ? 'Elevated' : '—' }}</strong></div><div><span>END-OF-TURN</span><strong>{{ recording ? 'Simulating' : 'Semantic' }}</strong></div>
             </div>
           </article>
 
@@ -274,8 +344,8 @@ useHead({
         </section>
 
         <section class="turns-panel panel">
-          <div class="panel-head"><div><span>RECENT VOICE TURNS</span><strong>Production traffic</strong></div><button class="text-button" @click="activeView = 'sessions'">View all sessions ↗</button></div>
-          <div class="table-wrap"><table><thead><tr><th>Turn</th><th>Time</th><th>Route</th><th>Signal</th><th>Model</th><th>Latency</th><th>Status</th></tr></thead><tbody><tr v-for="turn in recentTurns.slice(0, 4)" :key="turn.id" @click="showTurn(turn)"><td><strong>{{ turn.id }}</strong><small>{{ turn.duration }}</small></td><td>{{ turn.time }}</td><td><span class="route-pill" :class="turn.route.toLowerCase()">{{ turn.route }}</span></td><td>{{ turn.signal }}</td><td>{{ turn.model }}</td><td>{{ turn.latency }}</td><td><span class="status-pill" :class="turn.status.toLowerCase()"><i />{{ turn.status }}</span></td></tr></tbody></table></div>
+          <div class="panel-head"><div><span>RECENT VOICE TURNS</span><strong>Representative turn history</strong></div><button class="text-button" @click="activeView = 'sessions'">View all sessions ↗</button></div>
+          <div class="table-wrap"><table><thead><tr><th>Turn</th><th>Time</th><th>Route</th><th>Signal</th><th>Model</th><th>Latency</th><th>Status</th></tr></thead><tbody><tr v-for="turn in recentTurns.slice(0, 4)" :key="turn.id" tabindex="0" @click="showTurn(turn)" @keydown.enter="showTurn(turn)" @keydown.space.prevent="showTurn(turn)"><td><strong>{{ turn.id }}</strong><small>{{ turn.duration }}</small></td><td>{{ turn.time }}</td><td><span class="route-pill" :class="turn.route.toLowerCase()">{{ turn.route }}</span></td><td>{{ turn.signal }}</td><td>{{ turn.model }}</td><td>{{ turn.latency }}</td><td><span class="status-pill" :class="turn.status.toLowerCase()"><i />{{ turn.status }}</span></td></tr></tbody></table></div>
         </section>
       </template>
 
@@ -288,12 +358,12 @@ useHead({
       </template>
 
       <template v-else-if="activeView === 'models'">
-        <section class="registry-intro panel"><div><span>CAPABILITY REGISTRY</span><h2>One interface. Every audio model.</h2><p>Negotiate codecs, latency limits, and fallback behavior before a voice turn begins.</p></div><button class="session-button">+ Register model</button></section>
+        <section class="registry-intro panel"><div><span>CAPABILITY REGISTRY / REPRESENTATIVE</span><h2>One interface. Every audio model.</h2><p>Explore how codec, latency, and fallback capability negotiation will work before a voice turn begins.</p></div><button class="session-button" disabled>Provider setup planned</button></section>
         <section class="model-grid"><article v-for="modelItem in models" :key="modelItem.name" class="model-card panel" :class="{ selected: selectedModel === modelItem.name }" @click="selectedModel = modelItem.name"><div class="model-top"><span>{{ modelItem.provider }}</span><b><i />{{ modelItem.status }}</b></div><h3>{{ modelItem.name }}</h3><p>{{ modelItem.codecs }}</p><div class="quality"><span>PERCEPTION SCORE</span><strong>{{ modelItem.quality }}</strong><i><b :style="{ width: `${modelItem.quality}%` }" /></i></div><dl><div><dt>Median latency</dt><dd>{{ modelItem.latency }}</dd></div><div><dt>Streaming</dt><dd>Full duplex</dd></div></dl><button>{{ selectedModel === modelItem.name ? 'Active primary' : 'Set as primary' }}</button></article></section>
       </template>
 
       <template v-else-if="activeView === 'evals'">
-        <section class="registry-intro panel"><div><span>AUDIO-NATIVE EVALUATION</span><h2>Measure what transcripts miss.</h2><p>Compare direct audio reasoning with the cascaded baseline across real acoustic conditions.</p></div><button class="session-button">Run evaluation</button></section>
+        <section class="registry-intro panel"><div><span>AUDIO-NATIVE EVALUATION / REPRESENTATIVE</span><h2>Measure what transcripts miss.</h2><p>Preview direct-versus-cascaded evidence across representative acoustic conditions.</p></div><button class="session-button" disabled>Runner planned</button></section>
         <section class="eval-grid"><article v-for="suite in evaluationSuites" :key="suite.title" class="eval-card panel"><div><span>{{ suite.title }}</span><b>{{ suite.change }}</b></div><strong>{{ suite.score }}<small>/100</small></strong><div class="eval-bar"><i :style="{ width: `${suite.score}%` }" /></div><p>{{ suite.runs }} paired test runs</p></article></section>
         <section class="comparison panel"><div class="panel-head"><div><span>DIRECT VS CASCADED</span><strong>Perception advantage by signal</strong></div><small>Last 7 days</small></div><div class="comparison-chart"><div v-for="(suite, index) in evaluationSuites" :key="suite.title"><span>{{ suite.title }}</span><i><b :style="{ width: `${72 + index * 6}%` }" /><em :style="{ width: `${48 + index * 4}%` }" /></i><strong>+{{ 18 - index * 2 }} pts</strong></div></div><footer><span><i class="direct-key" /> Direct audio</span><span><i class="base-key" /> STT baseline</span></footer></section>
       </template>
@@ -336,6 +406,44 @@ useHead({
 
 .admin-link span {
   font: 9px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.simulation-banner {
+  min-height: 64px;
+  margin-top: 18px;
+  border: 1px solid #79d8ff3d;
+  background: linear-gradient(90deg, #79d8ff0d, transparent);
+  padding: 12px 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.simulation-banner span,
+.simulation-banner strong {
+  display: block;
+}
+
+.simulation-banner span {
+  color: #79d8ff;
+  letter-spacing: .13em;
+  font: 700 8px ui-monospace, SFMono-Regular, Menlo, monospace;
+  margin-bottom: 5px;
+}
+
+.simulation-banner strong {
+  color: #a8b4aa;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.55;
+}
+
+.simulation-banner a {
+  color: #79d8ff;
+  white-space: nowrap;
+  font: 700 8px ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase;
 }
 
 .demo-banner {
@@ -386,6 +494,124 @@ useHead({
   font-size: 10px;
 }
 
+.onboarding {
+  margin-top: 18px;
+  overflow: hidden;
+}
+
+.onboarding > header {
+  min-height: 82px;
+  border-bottom: 1px solid var(--d-line);
+  padding: 17px 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.onboarding > header span {
+  color: var(--d-lime);
+  letter-spacing: .14em;
+  font: 700 8px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.onboarding h2 {
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: -.03em;
+  margin: 8px 0 0;
+}
+
+.onboarding > header button {
+  color: #687368;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.onboarding ol {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.onboarding li {
+  min-height: 128px;
+  border-right: 1px solid var(--d-line);
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 12px;
+}
+
+.onboarding li:last-child {
+  border-right: 0;
+}
+
+.onboarding li > span {
+  color: #596359;
+  font: 700 9px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.onboarding li strong {
+  display: block;
+  font-size: 11px;
+}
+
+.onboarding li p {
+  color: #6f7a6e;
+  font-size: 9px;
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+
+.onboarding li.active {
+  background: #c6ff4a08;
+}
+
+.onboarding li.active > span,
+.onboarding li.complete > span {
+  color: var(--d-lime);
+}
+
+.onboarding li.complete strong {
+  color: #8f9b8d;
+}
+
+.onboarding > footer {
+  min-height: 66px;
+  border-top: 1px solid var(--d-line);
+  padding: 13px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.onboarding > footer p {
+  color: #6f7a6e;
+  font-size: 9px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.onboarding > footer button,
+.onboarding > footer a {
+  background: var(--d-lime);
+  color: #11170b;
+  cursor: pointer;
+  padding: 11px 13px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  font: 800 8px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.dashboard tbody tr:focus-visible {
+  outline: 2px solid var(--d-lime);
+  outline-offset: -2px;
+}
+
 .policy-actions {
   display: flex;
   align-items: center;
@@ -397,9 +623,32 @@ useHead({
   cursor: not-allowed;
 }
 
+.registry-intro .session-button:disabled {
+  background: #283027;
+  color: #7e887c;
+  cursor: not-allowed;
+}
+
 @media (max-width: 760px) {
+  .simulation-banner,
   .demo-banner {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .onboarding ol {
+    grid-template-columns: 1fr;
+  }
+
+  .onboarding li {
+    min-height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--d-line);
+  }
+
+  .onboarding > footer {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>

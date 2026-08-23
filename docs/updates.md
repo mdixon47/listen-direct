@@ -2,6 +2,37 @@
 
 This document records meaningful product and implementation changes to Listen Direct.
 
+## 2026-08-22 — Honest instant-demo experience
+
+### Added
+
+- Added a passwordless guest sandbox at `/dashboard?demo=1` that uses browser-local representative data and never calls protected APIs.
+- Added a three-step guided start covering route selection, sample-turn generation, and session inspection.
+- Added seeded representative turns so the dashboard communicates value immediately.
+- Added keyboard access and focus treatment to recent-turn rows.
+- Updated every project Markdown file to document the guest workflow, simulation boundaries, security model, current gaps, and lessons learned consistently.
+
+### Changed
+
+- Replaced live-input language with explicit interactive-simulation labeling across the product and dashboard.
+- Marked pricing as a preview because billing and usage metering are not active.
+- Disabled provider-registration and evaluation-runner actions that are not connected yet.
+- Added instant-demo calls to action across the landing, sign-in, and Help experiences.
+- Renamed the dashboard overview and system status so they no longer imply connected production traffic or measured uptime.
+
+### Security boundary
+
+- Guest mode bypasses only the dashboard page middleware. Supabase-backed APIs, persisted workspace data, and administration remain protected by server authentication and row-level security.
+
+### Verified
+
+- `npm run typecheck` passes.
+- `npm run build` completes successfully.
+- Repository secret scanning passes and the npm audit reports zero vulnerabilities.
+- `/dashboard?demo=1` renders anonymously with HTTP 200.
+- Anonymous requests to `/api/auth/me` and `/api/voice/turns` return HTTP 401.
+- `git diff --check` reports no whitespace errors.
+
 ## 2026-08-19 — Documentation and handoff refresh
 
 ### Changed
@@ -117,7 +148,7 @@ This fixture-based implementation was subsequently replaced by the Supabase auth
 ### Added
 
 - Created the `/dashboard` operations experience.
-- Added a simulated live voice-turn console with waveform activity, elapsed time, processing state, and generated turn records.
+- Added a simulated voice-turn console with waveform activity, elapsed time, processing state, and generated turn records.
 - Added adaptive, direct-audio, and standard STT routing controls.
 - Added operational metrics for direct-route rate, latency, turn success, and fallbacks.
 - Added searchable session history with route, signal, model, latency, and status data.
@@ -141,7 +172,7 @@ This fixture-based implementation was subsequently replaced by the Supabase auth
 
 - `npm run build` completes successfully with Nuxt 4.5.2.
 - Landing-page navigation reaches `/dashboard`.
-- Live-turn start, stop, processing, and session insertion work.
+- Simulated-turn start, stop, processing, and session insertion work.
 - Session search, model selection, evaluation navigation, routing controls, and policy output work.
 - Browser verification reported no console warnings or errors.
 

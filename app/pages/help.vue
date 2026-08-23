@@ -38,12 +38,12 @@ const guides: HelpGuide[] = [
     time: '2 min',
     audience: 'Everyone',
     steps: [
-      { title: 'Treat the waveform as a product simulation', body: 'Start live turn animates the console and creates representative routing, latency, transcript, and acoustic-signal data. The current application does not request microphone access or send audio to an AI provider.' },
-      { title: 'Choose the right identity', body: 'Demo access is a safe sandbox: generated turns stay in browser memory and disappear on refresh. User and admin accounts persist generated turn metadata and policy settings in Supabase.' },
+      { title: 'Treat the waveform as a product simulation', body: 'Start simulated turn animates the console and creates representative routing, latency, transcript, and acoustic-signal data. The current application does not request microphone access or send audio to an AI provider.' },
+      { title: 'Choose the right identity', body: 'The instant guest sandbox requires no account and never calls protected APIs. Guest and demo-role turns stay in browser memory and disappear on refresh. User and admin accounts persist generated turn metadata and policy settings in Supabase.' },
       { title: 'Use the dashboard to validate the workflow', body: 'Test the operational experience—routing, session inspection, model selection, evaluations, and data policy—before connecting production audio infrastructure.' },
     ],
     checks: ['No microphone permission is expected', 'Demo data is temporary', 'Production providers are not connected'],
-    related: [{ label: 'Read the privacy policy', to: '/privacy#audio' }, { label: 'Open the dashboard', to: '/dashboard' }],
+    related: [{ label: 'Read the privacy policy', to: '/privacy#audio' }, { label: 'Launch instant demo', to: '/dashboard?demo=1' }],
   },
   {
     id: 'first-voice-turn',
@@ -54,13 +54,13 @@ const guides: HelpGuide[] = [
     time: '3 min',
     audience: 'Demo · User · Admin',
     steps: [
-      { title: 'Open Live overview', body: 'Sign in, open the dashboard, and select Live overview in the left navigation. Confirm that the console says Ready for input.' },
+      { title: 'Launch the instant demo', body: 'Choose Try instant demo on the product page or Launch sandbox on the sign-in page. No account, password, microphone permission, or provider connection is required.' },
       { title: 'Choose a route', body: 'In Active route, choose Adaptive for the normal dual-path behavior, Direct to keep the audio-native path, or Standard to simulate STT + LLM.' },
-      { title: 'Start and end the turn', body: 'Select Start live turn. Let the waveform run for a few seconds, then select End turn. The interface processes the simulated turn for about a second.' },
+      { title: 'Start and end the turn', body: 'Select Start simulated turn. Let the waveform run for a few seconds, then select End turn. The interface generates representative route evidence for about a second.' },
       { title: 'Inspect the result', body: 'The new row appears under Recent voice turns. Select it to open Sessions, where you can review route, model, latency, duration, signal, status, and the optional shadow transcript.' },
     ],
     checks: ['A new turn appears', 'Route matches the selected mode', 'Latency and status are visible'],
-    related: [{ label: 'Open Live overview', to: '/dashboard' }],
+    related: [{ label: 'Launch instant demo', to: '/dashboard?demo=1' }],
   },
   {
     id: 'choose-routing-mode',
@@ -273,8 +273,8 @@ useHead({
 <template>
   <main class="help-page">
     <nav class="help-nav" aria-label="Help navigation">
-      <NuxtLink class="help-brand" to="/" aria-label="Listen Direct home"><span><i /><i /><i /></span>LISTEN<strong>/DIRECT</strong></NuxtLink>
-      <div><NuxtLink to="/">Product</NuxtLink><NuxtLink to="/privacy">Privacy</NuxtLink><NuxtLink class="help-nav-cta" to="/dashboard">Open dashboard <b>↗</b></NuxtLink></div>
+      <NuxtLink class="help-brand" to="/" aria-label="Listen Direct home"><span><i /><i /><i /></span><b>LISTEN<strong>/DIRECT</strong></b></NuxtLink>
+      <div><NuxtLink to="/">Product</NuxtLink><NuxtLink to="/privacy">Privacy</NuxtLink><NuxtLink class="help-nav-cta" to="/dashboard?demo=1">Try instant demo <b>↗</b></NuxtLink></div>
     </nav>
 
     <header class="help-hero">
@@ -282,12 +282,12 @@ useHead({
       <label class="help-search"><span>⌕</span><input v-model="query" type="search" placeholder="Search routing, sessions, privacy…" aria-label="Search help guides"><kbd>HELP</kbd></label>
     </header>
 
-    <section class="scope-note" aria-label="Demo scope"><strong>DEMO SCOPE</strong><p>The current dashboard simulates voice activity and does not request microphone access or call a live AI model. This Help Center distinguishes current behavior from production recommendations.</p><NuxtLink to="/help#understand-the-demo">Read first →</NuxtLink></section>
+    <section class="scope-note" aria-label="Demo scope"><strong>DEMO SCOPE</strong><p>The instant guest sandbox requires no account, while the current dashboard simulates voice activity and never requests microphone access or calls a live AI model.</p><NuxtLink to="/help#understand-the-demo">Read first →</NuxtLink></section>
 
     <section class="quick-paths" aria-labelledby="quick-paths-title">
       <div class="section-label"><span>01</span><div><p>CHOOSE YOUR PATH</p><h2 id="quick-paths-title">Start with your role.</h2></div></div>
       <div class="path-grid">
-        <button @click="choosePath('start', 'first-voice-turn')"><span>DEMO</span><strong>Explore safely</strong><p>Run a temporary turn and learn the operating model.</p><b>4 steps →</b></button>
+        <button @click="choosePath('start', 'first-voice-turn')"><span>DEMO</span><strong>Explore safely</strong><p>Launch instantly and learn the workflow without an account.</p><b>3 guided moves →</b></button>
         <button @click="choosePath('operate', 'choose-routing-mode')"><span>BUILDER</span><strong>Route and measure</strong><p>Compare direct listening with the reliable baseline.</p><b>3 core workflows →</b></button>
         <button @click="choosePath('admin', 'manage-access')"><span>ADMIN</span><strong>Control access</strong><p>Review roles, policies, and workspace boundaries.</p><b>Security path →</b></button>
       </div>
@@ -330,9 +330,9 @@ useHead({
       <dl><div><dt>Direct</dt><dd>The representative audio signal goes to an audio-input model without transcription as the reasoning input.</dd></div><div><dt>Standard</dt><dd>The cascaded baseline: speech-to-text, text reasoning, then speech synthesis.</dd></div><div><dt>Adaptive</dt><dd>A route gate chooses Direct or Standard using capability, confidence, latency, and policy.</dd></div><div><dt>Shadow transcript</dt><dd>Optional text generated beside the direct path for captions, search, debugging, or audits.</dd></div><div><dt>Acoustic signals</dt><dd>Non-text features such as pitch, energy, cadence, and turn-taking behavior.</dd></div><div><dt>RLS</dt><dd>Supabase PostgreSQL row-level security that enforces workspace access at the data layer.</dd></div></dl>
     </section>
 
-    <section class="help-cta"><div><span>READY TO TRY IT?</span><h2>Learn by operating.</h2><p>Open the protected workspace and use these guides alongside the dashboard.</p></div><div><NuxtLink class="primary" to="/dashboard">Open dashboard <b>↗</b></NuxtLink><NuxtLink to="/login">Sign in</NuxtLink></div></section>
+    <section class="help-cta"><div><span>READY TO TRY IT?</span><h2>Learn by operating.</h2><p>Launch the browser-only sandbox and use these guides alongside the dashboard.</p></div><div><NuxtLink class="primary" to="/dashboard?demo=1">Try instant demo <b>↗</b></NuxtLink><NuxtLink to="/login">Sign in</NuxtLink></div></section>
 
-    <footer class="help-footer"><NuxtLink class="help-brand" to="/"><span><i /><i /><i /></span>LISTEN<strong>/DIRECT</strong></NuxtLink><p>Help Center · Updated August 19, 2026</p><div><NuxtLink to="/privacy">Privacy</NuxtLink><NuxtLink to="/terms">Terms</NuxtLink><a href="#top">Top ↑</a></div></footer>
+    <footer class="help-footer"><NuxtLink class="help-brand" to="/"><span><i /><i /><i /></span><b>LISTEN<strong>/DIRECT</strong></b></NuxtLink><p>Help Center · Updated August 22, 2026</p><div><NuxtLink to="/privacy">Privacy</NuxtLink><NuxtLink to="/terms">Terms</NuxtLink><a href="#top">Top ↑</a></div></footer>
   </main>
 </template>
 

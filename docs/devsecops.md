@@ -7,6 +7,7 @@ This project treats security checks as part of development, review, deployment, 
 Run these before opening a pull request:
 
 ```bash
+npm run typecheck
 npm run security:secrets
 npm audit --omit=dev --audit-level=high
 NUXT_PUBLIC_SUPABASE_URL="https://example.supabase.co" \
@@ -17,6 +18,18 @@ npm run build
 `security:secrets` checks source files for common private keys and access tokens, rejects sensitive filenames unless Git ignores them, and verifies required `.gitignore` rules. It intentionally avoids package dependencies and network access. The npm audit uses the public advisory service and therefore requires network access.
 
 Never commit a real `.env` file, deployment secret, model-provider key, customer audio, transcript, or personal data. `.env.example` must contain placeholders only.
+
+## Guest sandbox security model
+
+The instant demo at `/dashboard?demo=1` is intentionally public, but only as a browser-local product simulation:
+
+1. Route middleware permits that exact dashboard path and query combination without a Supabase session.
+2. The dashboard selects a local guest identity, seeded turns, and browser-memory state.
+3. Guest mode does not request `/api/auth/me`, `/api/voice/turns`, or `/api/data-policy`.
+4. Server routes still resolve authenticated users and enforce workspace roles independently.
+5. PostgreSQL row-level security remains active for every Supabase-backed operation.
+
+Treat `demo=1` only as a presentation-mode flag. It must never be accepted as proof of identity, workspace membership, or authorization. Add regression coverage whenever middleware, dashboard data loading, or protected APIs change.
 
 ## Automated pipeline
 
@@ -72,6 +85,7 @@ Repository files cannot enable every platform protection. After pushing, configu
 
 - Configure the production `NUXT_PUBLIC_SUPABASE_URL` and Supabase publishable key. These values are browser-visible identifiers, not administrator secrets.
 - On Netlify, do not add `SUPABASE_SECRET_KEY` or a service-role key. The application does not use an admin client; authorization is enforced through user sessions and Row Level Security. The committed Netlify configuration omits only the expected public Supabase URL/key from value scanning and leaves secret scanning enabled for all private variables.
+- Verify anonymous access to `/dashboard?demo=1` succeeds while every protected API continues to reject the same anonymous client.
 - Never expose a Supabase secret key or legacy service-role key in Nuxt public configuration or a browser bundle.
 - Apply database migrations through a protected deployment identity and review every row-level security policy before launch.
 - Enable administrator MFA, verified email, password recovery, workspace invitations, and account-deletion handling.

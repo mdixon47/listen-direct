@@ -31,6 +31,14 @@ A banner is not enough by itself. Optional processing should begin disabled, acc
 
 The safest prototype language is concrete: the current dashboard simulates audio, no analytics provider is connected, sessions expire, and production vendors are not yet selected. Policies should be updated alongside the actual data flow rather than describing planned safeguards as if they already exist.
 
+### Honest simulation labels strengthen trust
+
+A polished prototype can accidentally imply that representative metrics, realtime providers, or billing already exist. Explicit labels such as **Interactive simulation**, **Representative**, and **Pricing preview** preserve the product story without overstating the implementation.
+
+### Instant access improves product discovery
+
+Requiring authentication before visitors understand the workflow creates unnecessary friction. A passwordless, browser-only sandbox can demonstrate route selection, turn evidence, and session review before asking the visitor to create a protected workspace.
+
 ### The initial customer should be a developer team
 
 The current concept is strongest as infrastructure for teams already building voice products. A focused SDK and API can solve integration and reliability problems without competing directly as another general-purpose assistant.
@@ -41,9 +49,13 @@ The current concept is strongest as infrastructure for teams already building vo
 
 The landing page explains the thesis; the dashboard demonstrates the operational product. Nuxt file-based routes make that distinction explicit while keeping one visual system and deployment.
 
-### A client-side simulation is useful for product validation
+### A browser-only simulation is useful for product validation
 
-The simulated live turn makes workflows testable before choosing an audio provider or backend architecture. It allows product decisions about routing, session review, evaluations, and policies to happen before expensive infrastructure work.
+The simulated turn makes workflows testable before choosing an audio provider or backend architecture. It allows product decisions about routing, session review, evaluations, and policies to happen before expensive infrastructure work.
+
+### Guest navigation and server authorization are different boundaries
+
+A public dashboard route can be safe when it uses only local fixtures. The query parameter may bypass page middleware for that narrow experience, but every protected server endpoint must still resolve an authenticated user and enforce workspace authorization independently.
 
 ### The production data model should be event-based
 
@@ -88,3 +100,4 @@ Codecs, sample rates, streaming support, duration limits, languages, and output 
 3. A paired evaluation runner can demonstrate meaningful gains for tone-sensitive use cases.
 4. Usage pricing should combine a platform fee with processed audio minutes and premium observability retention.
 5. The best initial vertical will have high voice volume and clear value from vocal information, such as coaching, customer support, or language learning.
+6. A guided guest sandbox will increase qualified workspace signups by letting prospects experience the evidence model before registration.

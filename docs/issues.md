@@ -4,15 +4,15 @@ This file tracks known limitations and the work required to turn the current pro
 
 ## Critical product gaps
 
-### Live audio is simulated
+### Realtime audio is not implemented
 
-The dashboard does not currently capture microphone input, run voice-activity detection, stream audio, or call an audio-capable model. The live-turn console uses client-side timers and generated demo records.
+The dashboard does not currently capture microphone input, run voice-activity detection, stream audio, or call an audio-capable model. The simulated-turn console uses client-side timers and generated representative records.
 
 **Next work:** implement browser audio capture with `getUserMedia`, an AudioWorklet, a streaming transport, server-side session management, and a supported realtime model API.
 
 ### Operational data is only partially persistent
 
-Supabase now persists generated voice turns and data-policy settings for user and administrator accounts. Live sessions, model selections, aggregate metrics, evaluations, and demo-role turns are still simulated or browser-local.
+Supabase now persists generated voice turns and data-policy settings for user and administrator accounts. Session lifecycles, model selections, aggregate metrics, evaluations, guest-sandbox turns, and demo-account turns are still simulated or browser-local.
 
 **Next work:** persist session lifecycle and routing events, add a background metrics pipeline, and connect model/evaluation records to actual provider runs.
 
@@ -48,6 +48,12 @@ The cookie component records an analytics preference and emits a `listen-direct:
 
 ## Engineering issues
 
+### Guest access must remain a page-only exception
+
+The passwordless guest sandbox intentionally skips authentication middleware only for `/dashboard?demo=1`. It is safe because the dashboard uses seeded browser-local data and does not call protected APIs in guest mode.
+
+**Recommended fix:** add automated regression tests proving anonymous guest rendering remains available while `/api/auth/me`, `/api/voice/turns`, `/api/data-policy`, and all administrator endpoints continue returning authorization failures. Never interpret the query parameter as server authorization.
+
 ### Dashboard page is too large
 
 `app/pages/dashboard.vue` contains data, state, behavior, markup, and styles for every dashboard view. This is acceptable for a prototype but will become difficult to maintain.
@@ -62,15 +68,15 @@ The cookie component records an analytics preference and emits a `listen-direct:
 
 ### No automated test suite
 
-The application has been production-built and manually browser-tested, but it has no committed unit, component, or end-to-end tests.
+The application has been production-built and its guest/authentication boundary has been checked through rendered HTTP responses, but it has no committed unit, component, or end-to-end tests.
 
 **Recommended fix:** add Vitest for state and utility logic, Vue Test Utils for components, and Playwright for routing and critical dashboard workflows.
 
-### Interactive table rows are mouse-oriented
+### Interactive table rows should become native controls
 
-Recent-turn table rows use click handlers but are not keyboard-focusable controls.
+Recent-turn table rows now expose focus, Enter, Space, and visible focus treatment, but they still rely on row-level interaction semantics.
 
-**Recommended fix:** use links or buttons inside the first column, or add appropriate keyboard behavior and focus styling.
+**Recommended fix:** use a real link or button inside the first column so assistive technology receives native interactive semantics without relying on a focusable table row.
 
 ### Node.js 25 is unsupported by the selected Nuxt release
 
@@ -93,6 +99,7 @@ The local scanner catches private-key material, common token formats, and sensit
 ## Commercial and operational gaps
 
 - No metering or usage-based billing.
+- Pricing cards are a preview and are not connected to checkout, subscription, entitlement, or usage enforcement.
 - No API keys or SDK distribution.
 - No service-level objectives, alerting, or incident process.
 - No customer-facing audit export.

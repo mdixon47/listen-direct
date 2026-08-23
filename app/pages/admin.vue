@@ -38,7 +38,7 @@ useHead({ title: 'Administration · Listen Direct' })
 <template>
   <div class="admin-page">
     <aside>
-      <NuxtLink class="admin-brand" to="/"><span><i /><i /><i /></span>LISTEN<strong>/DIRECT</strong></NuxtLink>
+      <NuxtLink class="admin-brand" to="/"><span><i /><i /><i /></span><b>LISTEN<strong>/DIRECT</strong></b></NuxtLink>
       <p>PLATFORM ADMINISTRATION</p>
       <nav><NuxtLink to="/admin" class="active"><span>01</span>Identity overview</NuxtLink><NuxtLink to="/dashboard"><span>02</span>Voice operations</NuxtLink></nav>
       <div class="admin-legal"><NuxtLink to="/help">Help</NuxtLink><NuxtLink to="/privacy">Privacy</NuxtLink><NuxtLink to="/terms">Terms</NuxtLink></div><div class="admin-profile"><span>{{ initials }}</span><div><strong>{{ user?.name }}</strong><small>{{ user?.email }}</small></div><button @click="logout">Sign out</button></div>
@@ -55,7 +55,7 @@ useHead({ title: 'Administration · Listen Direct' })
         <div v-else class="admin-table"><table><thead><tr><th>Identity</th><th>Role</th><th>Workspace</th><th>Session</th><th>Status</th></tr></thead><tbody><tr v-for="account in data?.users" :key="account.id"><td><span>{{ account.name.split(' ').map(part => part[0]).join('') }}</span><div><strong>{{ account.name }}</strong><small>{{ account.email }}</small></div></td><td><b :class="account.role">{{ account.role }}</b></td><td>{{ account.workspace }}</td><td>{{ account.role === 'demo' ? '2 hours' : '8 hours' }}</td><td><i /> Active</td></tr></tbody></table></div>
       </section>
 
-      <section class="admin-grid"><article class="admin-panel permissions"><div class="panel-title"><div><span>ROLE MATRIX</span><strong>Effective permissions</strong></div></div><div><span>Capability</span><b>Demo</b><b>User</b><b>Admin</b></div><div><span>Explore dashboard</span><i>✓</i><i>✓</i><i>✓</i></div><div><span>Operate live turns</span><i>Sandbox</i><i>✓</i><i>✓</i></div><div><span>Change policies</span><i>—</i><i>Workspace</i><i>Global</i></div><div><span>Manage identities</span><i>—</i><i>—</i><i>✓</i></div></article><article class="admin-panel audit"><div class="panel-title"><div><span>RECENT AUDIT</span><strong>Identity activity</strong></div></div><ul><li v-for="event in auditEvents" :key="`${event.time}-${event.action}`"><time>{{ event.time }}</time><div><strong>{{ event.action }}</strong><span>{{ event.actor }} · {{ event.scope }}</span></div><b>{{ event.result }}</b></li></ul></article></section>
+      <section class="admin-grid"><article class="admin-panel permissions"><div class="panel-title"><div><span>ROLE MATRIX</span><strong>Effective permissions</strong></div></div><div><span>Capability</span><b>Demo</b><b>User</b><b>Admin</b></div><div><span>Explore dashboard</span><i>✓</i><i>✓</i><i>✓</i></div><div><span>Operate simulated turns</span><i>Sandbox</i><i>✓</i><i>✓</i></div><div><span>Change policies</span><i>—</i><i>Workspace</i><i>Global</i></div><div><span>Manage identities</span><i>—</i><i>—</i><i>✓</i></div></article><article class="admin-panel audit"><div class="panel-title"><div><span>RECENT AUDIT</span><strong>Identity activity</strong></div></div><ul><li v-for="event in auditEvents" :key="`${event.time}-${event.action}`"><time>{{ event.time }}</time><div><strong>{{ event.action }}</strong><span>{{ event.actor }} · {{ event.scope }}</span></div><b>{{ event.result }}</b></li></ul></article></section>
     </main>
   </div>
 </template>

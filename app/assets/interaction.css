@@ -598,6 +598,30 @@
   padding: 18px 22px;
 }
 
+.pricing-preview {
+  align-items: center;
+  background: #f2cf6d0a;
+  border: 1px solid #f2cf6d3d;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 150px 1fr;
+  margin: -26px 0 28px;
+  padding: 15px 18px;
+}
+
+.pricing-preview span {
+  color: #f2cf6d;
+  font: 700 8px ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .14em;
+}
+
+.pricing-preview p {
+  color: #9e987d;
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 0;
+}
+
 .pricing-note > span {
   margin-right: 14px;
 }
@@ -676,6 +700,10 @@
 }
 
 @media (max-width: 760px) {
+  .pricing-preview {
+    grid-template-columns: 1fr;
+    margin-top: -12px;
+  }
   .pipeline-explainer {
     align-items: start;
     gap: 18px;
