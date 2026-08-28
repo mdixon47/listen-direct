@@ -12,9 +12,15 @@ The dashboard does not currently capture microphone input, run voice-activity de
 
 ### Operational data is only partially persistent
 
-Supabase now persists generated voice turns and data-policy settings for user and administrator accounts. Session lifecycles, model selections, aggregate metrics, evaluations, guest-sandbox turns, and demo-account turns are still simulated or browser-local.
+Supabase now persists generated voice turns and data-policy settings for user and administrator accounts. Session lifecycles, model selections, aggregate metrics, evaluations, notifications, assistant suggestions, guest-sandbox turns, and demo-account turns are still simulated or browser-local.
 
-**Next work:** persist session lifecycle and routing events, add a background metrics pipeline, and connect model/evaluation records to actual provider runs.
+**Next work:** persist session lifecycle, routing events, notification state, assistant proposals, operator approvals, and resolution evidence; add a background metrics pipeline; and connect model/evaluation records to actual provider runs.
+
+### Help Assistant is guide matching, not a generative support service
+
+The public Help Assistant runs deterministic keyword and intent matching against the 12 maintained guides. It provides a transparent and private support experience, but it does not understand account-specific context, inspect live records, retrieve knowledge outside the page, or generate novel remediation plans.
+
+**Next work:** if generative support is needed, move orchestration to an authenticated backend; retrieve only authorized, versioned documentation; redact sensitive inputs; cite every source; add evaluation and escalation paths; rate-limit requests; persist consented audit evidence; and keep all corrective actions behind explicit user approval.
 
 ### Account lifecycle is incomplete
 

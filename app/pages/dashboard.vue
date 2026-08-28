@@ -1,8 +1,11 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'authenticated' })
 
-type ViewName = 'overview' | 'sessions' | 'models' | 'evals' | 'controls'
+type ViewName = 'overview' | 'notifications' | 'sessions' | 'models' | 'evals' | 'controls'
 type RouteMode = 'adaptive' | 'direct' | 'standard'
+type NotificationSeverity = 'critical' | 'warning' | 'info'
+type NotificationStatus = 'open' | 'resolved'
+type NotificationFilter = 'open' | 'assistance' | 'resolved' | 'all'
 
 type Turn = {
   id: string
@@ -34,12 +37,30 @@ type DataPolicy = {
   updated_at: string
 }
 
+type NotificationItem = {
+  id: string
+  title: string
+  summary: string
+  severity: NotificationSeverity
+  status: NotificationStatus
+  category: 'routing' | 'privacy' | 'model'
+  time: string
+  source: string
+  relatedTurnId?: string
+  requiresAssistance: boolean
+  diagnosis: string
+  assistantPlan: string[]
+  suggestedAction: string
+  resolution?: string
+}
+
 const navigation: { id: ViewName; label: string; hint: string }[] = [
   { id: 'overview', label: 'Operations overview', hint: '01' },
-  { id: 'sessions', label: 'Sessions', hint: '02' },
-  { id: 'models', label: 'Model registry', hint: '03' },
-  { id: 'evals', label: 'Audio evals', hint: '04' },
-  { id: 'controls', label: 'Data controls', hint: '05' },
+  { id: 'notifications', label: 'Notifications', hint: '02' },
+  { id: 'sessions', label: 'Sessions', hint: '03' },
+  { id: 'models', label: 'Model registry', hint: '04' },
+  { id: 'evals', label: 'Audio evals', hint: '05' },
+  { id: 'controls', label: 'Data controls', hint: '06' },
 ]
 
 const models = [
@@ -53,6 +74,68 @@ const evaluationSuites = [
   { title: 'Accents + dialects', score: 88, runs: 380, change: '+1.1%' },
   { title: 'Noise resilience', score: 91, runs: 192, change: '+4.8%' },
   { title: 'Turn boundaries', score: 97, runs: 516, change: '+0.6%' },
+]
+
+const seededNotifications: NotificationItem[] = [
+  {
+    id: 'notice_route_01',
+    title: 'Noise fallbacks crossed the review threshold',
+    summary: 'Three representative turns fell back after Direct confidence dropped below the current workspace floor.',
+    severity: 'warning',
+    status: 'open',
+    category: 'routing',
+    time: '4 min ago',
+    source: 'Adaptive route monitor',
+    relatedTurnId: 'demo_noise_02',
+    requiresAssistance: true,
+    diagnosis: 'The route is behaving safely, but the current Direct confidence floor allows noisy turns to stay on the primary path longer than intended.',
+    assistantPlan: [
+      'Keep Adaptive routing active so unsupported turns retain a safe fallback.',
+      'Raise the representative Direct confidence floor from 0.72 to 0.78 for noisy conditions.',
+      'Review the next 30 representative turns before promoting the change to a production policy.',
+    ],
+    suggestedAction: 'Use Adaptive routing with a stricter representative confidence floor and keep Standard as the fallback.',
+  },
+  {
+    id: 'notice_privacy_02',
+    title: 'Retention setting needs a consent-safe default',
+    summary: 'The current 24-hour raw-audio setting is longer than the minimum needed for this simulated workspace.',
+    severity: 'critical',
+    status: 'open',
+    category: 'privacy',
+    time: '18 min ago',
+    source: 'Data policy guard',
+    requiresAssistance: true,
+    diagnosis: 'The policy is valid for the prototype, but it does not follow the shortest-retention principle described in the workspace guidance.',
+    assistantPlan: [
+      'Change raw-audio retention to Transient only.',
+      'Keep consent-aware logging enabled before any future trace storage.',
+      'Require operator review before persisting the recommendation to a protected workspace.',
+    ],
+    suggestedAction: 'Set raw-audio retention to Transient only and keep consent-aware logging enabled.',
+  },
+  {
+    id: 'notice_model_03',
+    title: 'Representative model registry is synchronized',
+    summary: 'All three demonstration model profiles expose compatible codec and streaming metadata.',
+    severity: 'info',
+    status: 'resolved',
+    category: 'model',
+    time: 'Yesterday',
+    source: 'Capability registry',
+    requiresAssistance: false,
+    diagnosis: 'No intervention is required.',
+    assistantPlan: [],
+    suggestedAction: 'No correction required.',
+    resolution: 'Closed automatically after the representative registry check completed.',
+  },
+]
+
+const notificationFilters: { id: NotificationFilter; label: string }[] = [
+  { id: 'open', label: 'Open' },
+  { id: 'assistance', label: 'Needs assistance' },
+  { id: 'resolved', label: 'Resolved' },
+  { id: 'all', label: 'All' },
 ]
 
 const route = useRoute()
@@ -87,9 +170,11 @@ if (!isGuestDemo.value) {
 
 const recentTurns = ref<Turn[]>(isGuestDemo.value ? guestDemoTurns : persistedTurns.value?.turns ?? [])
 
-const activeView = ref<ViewName>('overview')
+const requestedView = typeof route.query.view === 'string' && navigation.some(item => item.id === route.query.view) ? route.query.view as ViewName : 'overview'
+const activeView = ref<ViewName>(requestedView)
 const user = computed(() => identity.value?.user)
 const routeMode = ref<RouteMode>('adaptive')
+const fallbackThreshold = ref(0.72)
 const selectedModel = ref('Inkling Audio')
 const shadowTranscripts = ref(persistedPolicy.value?.policy.shadow_transcripts ?? true)
 const consentLogging = ref(persistedPolicy.value?.policy.consent_logging ?? true)
@@ -105,7 +190,13 @@ const waveLevels = ref([22, 36, 64, 42, 76, 52, 88, 46, 70, 34, 58, 28, 48, 32, 
 const search = ref('')
 const onboardingStep = ref(0)
 const onboardingDismissed = ref(false)
+const notifications = ref<NotificationItem[]>(seededNotifications.map(item => ({ ...item, assistantPlan: [...item.assistantPlan] })))
+const notificationFilter = ref<NotificationFilter>('open')
+const selectedNotificationId = ref(seededNotifications[0]?.id ?? '')
+const assistantWorkingId = ref('')
+const assistantReviews = ref<Record<string, boolean>>({})
 let timer: ReturnType<typeof setInterval> | null = null
+let assistantTimer: ReturnType<typeof setTimeout> | null = null
 
 const onboardingSteps = [
   { title: 'Choose a route', copy: 'Start with Direct so the original acoustic signal stays in the reasoning path.' },
@@ -123,6 +214,20 @@ const visibleTurns = computed(() => {
 const elapsed = computed(() => `${(elapsedTenths.value / 10).toFixed(1)}s`)
 const initials = computed(() => user.value?.name.split(' ').map(part => part[0]).join('').slice(0, 2) ?? 'LD')
 const isDemo = computed(() => isGuestDemo.value || user.value?.role === 'demo')
+const openNotificationCount = computed(() => notifications.value.filter(item => item.status === 'open').length)
+const assistanceNotificationCount = computed(() => notifications.value.filter(item => item.status === 'open' && item.requiresAssistance).length)
+const resolvedNotificationCount = computed(() => notifications.value.filter(item => item.status === 'resolved').length)
+const visibleNotifications = computed(() => notifications.value.filter((item) => {
+  if (notificationFilter.value === 'all') return true
+  if (notificationFilter.value === 'assistance') return item.status === 'open' && item.requiresAssistance
+  return item.status === notificationFilter.value
+}))
+const selectedNotification = computed(() => {
+  const selected = notifications.value.find(item => item.id === selectedNotificationId.value)
+  if (selected && visibleNotifications.value.some(item => item.id === selected.id)) return selected
+  return visibleNotifications.value[0] ?? null
+})
+const assistantReady = computed(() => Boolean(selectedNotification.value && assistantReviews.value[selectedNotification.value.id]))
 
 async function logout() {
   if (isGuestDemo.value) {
@@ -249,8 +354,86 @@ function showTurn(turn: Turn) {
   search.value = turn.id
 }
 
+function openNotifications() {
+  activeView.value = 'notifications'
+  notificationFilter.value = 'open'
+  const firstOpen = notifications.value.find(item => item.status === 'open')
+  if (firstOpen) selectedNotificationId.value = firstOpen.id
+}
+
+function setNotificationFilter(filter: NotificationFilter) {
+  notificationFilter.value = filter
+  const firstMatch = notifications.value.find((item) => {
+    if (filter === 'all') return true
+    if (filter === 'assistance') return item.status === 'open' && item.requiresAssistance
+    return item.status === filter
+  })
+  if (firstMatch) selectedNotificationId.value = firstMatch.id
+}
+
+function requestAssistantReview() {
+  const item = selectedNotification.value
+  if (!item || !item.requiresAssistance || item.status === 'resolved') return
+  if (assistantTimer) clearTimeout(assistantTimer)
+  assistantWorkingId.value = item.id
+  assistantTimer = setTimeout(() => {
+    assistantReviews.value = { ...assistantReviews.value, [item.id]: true }
+    assistantWorkingId.value = ''
+    assistantTimer = null
+  }, 650)
+}
+
+function applyAssistantCorrection() {
+  const item = selectedNotification.value
+  if (!item || !assistantReviews.value[item.id] || item.status === 'resolved') return
+
+  if (item.category === 'routing') {
+    routeMode.value = 'adaptive'
+    fallbackThreshold.value = 0.78
+  }
+  if (item.category === 'privacy') {
+    retention.value = 'Transient only'
+    consentLogging.value = true
+    policyStatus.value = isDemo.value ? 'Correction applied locally' : 'Review and save policy'
+  }
+
+  item.status = 'resolved'
+  item.time = 'Just now'
+  item.resolution = `Operator approved assistant suggestion: ${item.suggestedAction}`
+  notificationFilter.value = 'all'
+  selectedNotificationId.value = item.id
+}
+
+function resolveNotification() {
+  const item = selectedNotification.value
+  if (!item || item.status === 'resolved') return
+  item.status = 'resolved'
+  item.time = 'Just now'
+  item.resolution = 'Marked resolved after operator review without an assistant-applied change.'
+  notificationFilter.value = 'all'
+  selectedNotificationId.value = item.id
+}
+
+function reopenNotification() {
+  const item = selectedNotification.value
+  if (!item) return
+  item.status = 'open'
+  item.time = 'Just now'
+  item.resolution = undefined
+  notificationFilter.value = 'open'
+  selectedNotificationId.value = item.id
+}
+
+function viewNotificationTurn() {
+  const item = selectedNotification.value
+  if (!item?.relatedTurnId) return
+  const turn = recentTurns.value.find(candidate => candidate.id === item.relatedTurnId)
+  if (turn) showTurn(turn)
+}
+
 onBeforeUnmount(() => {
   if (timer) clearInterval(timer)
+  if (assistantTimer) clearTimeout(assistantTimer)
 })
 
 useHead({
@@ -292,7 +475,7 @@ useHead({
       <header class="dashboard-header">
         <div><span>VOICE OPERATIONS / {{ activeView.toUpperCase() }}</span><h1>{{ pageTitle }}</h1></div>
         <div class="header-actions">
-          <button class="icon-button" aria-label="Notifications">●<span>2</span></button>
+          <button class="icon-button" :class="{ active: activeView === 'notifications' }" :aria-label="`Notifications, ${openNotificationCount} open`" @click="openNotifications">◈<span v-if="openNotificationCount">{{ openNotificationCount }}</span></button>
           <button class="session-button" :class="{ recording }" @click="toggleRecording">
             <i />{{ recording ? `End turn · ${elapsed}` : processing ? 'Processing…' : 'Start simulated turn' }}
           </button>
@@ -303,7 +486,7 @@ useHead({
       <div v-if="isGuestDemo" class="demo-banner"><div><span>GUEST SANDBOX</span><strong>No account required. New turns remain in this browser session and all protected APIs stay unavailable.</strong></div><button @click="logout">Exit sandbox</button></div>
       <div v-else-if="isDemo" class="demo-banner"><div><span>DEMO ACCOUNT</span><strong>Explore safely—new voice turns remain in this browser session and policies are read-only.</strong></div><button @click="logout">Exit demo</button></div>
 
-      <section v-if="isGuestDemo && !onboardingDismissed" class="onboarding panel" aria-label="Demo onboarding">
+      <section v-if="isGuestDemo && !onboardingDismissed && activeView === 'overview'" class="onboarding panel" aria-label="Demo onboarding">
         <header><div><span>GUIDED START / {{ Math.min(onboardingStep + 1, 3) }} OF 3</span><h2>{{ onboardingStep < 3 ? 'Prove the workflow in three moves.' : 'You completed the product tour.' }}</h2></div><button aria-label="Dismiss guided start" @click="onboardingDismissed = true">×</button></header>
         <ol><li v-for="(step, index) in onboardingSteps" :key="step.title" :class="{ active: onboardingStep === index, complete: onboardingStep > index }"><span>{{ onboardingStep > index ? '✓' : String(index + 1).padStart(2, '0') }}</span><div><strong>{{ step.title }}</strong><p>{{ step.copy }}</p></div></li></ol>
         <footer><p v-if="onboardingStep < 3">Everything in this tour is generated locally and disappears when the sandbox closes.</p><p v-else>Your sample evidence is open in Sessions. Create a workspace when you are ready to persist operating data.</p><button v-if="onboardingStep < 3" @click="advanceOnboarding">{{ onboardingActions[onboardingStep] }} →</button><NuxtLink v-else to="/login?mode=signup">Create a protected workspace →</NuxtLink></footer>
@@ -339,13 +522,105 @@ useHead({
             <div class="route-flow">
               <div><span>01</span><strong>Voice turn</strong><small>audio/pcm</small></div><b>→</b><div class="router-node"><span>02</span><strong>Route gate</strong><small>{{ routeMode }}</small></div><b>→</b><div><span>03</span><strong>{{ routeMode === 'standard' ? 'STT + LLM' : selectedModel }}</strong><small>{{ routeMode === 'standard' ? 'fallback' : 'audio native' }}</small></div>
             </div>
-            <dl><div><dt>Primary model</dt><dd>{{ selectedModel }}</dd></div><div><dt>Fallback threshold</dt><dd>Confidence &lt; 0.72</dd></div><div><dt>Shadow transcript</dt><dd><button class="mini-toggle" :class="{ on: shadowTranscripts }" @click="shadowTranscripts = !shadowTranscripts"><i /></button></dd></div></dl>
+            <dl><div><dt>Primary model</dt><dd>{{ selectedModel }}</dd></div><div><dt>Fallback threshold</dt><dd>Confidence &lt; {{ fallbackThreshold.toFixed(2) }}</dd></div><div><dt>Shadow transcript</dt><dd><button class="mini-toggle" :class="{ on: shadowTranscripts }" @click="shadowTranscripts = !shadowTranscripts"><i /></button></dd></div></dl>
           </article>
         </section>
 
         <section class="turns-panel panel">
           <div class="panel-head"><div><span>RECENT VOICE TURNS</span><strong>Representative turn history</strong></div><button class="text-button" @click="activeView = 'sessions'">View all sessions ↗</button></div>
           <div class="table-wrap"><table><thead><tr><th>Turn</th><th>Time</th><th>Route</th><th>Signal</th><th>Model</th><th>Latency</th><th>Status</th></tr></thead><tbody><tr v-for="turn in recentTurns.slice(0, 4)" :key="turn.id" tabindex="0" @click="showTurn(turn)" @keydown.enter="showTurn(turn)" @keydown.space.prevent="showTurn(turn)"><td><strong>{{ turn.id }}</strong><small>{{ turn.duration }}</small></td><td>{{ turn.time }}</td><td><span class="route-pill" :class="turn.route.toLowerCase()">{{ turn.route }}</span></td><td>{{ turn.signal }}</td><td>{{ turn.model }}</td><td>{{ turn.latency }}</td><td><span class="status-pill" :class="turn.status.toLowerCase()"><i />{{ turn.status }}</span></td></tr></tbody></table></div>
+        </section>
+      </template>
+
+      <template v-else-if="activeView === 'notifications'">
+        <section class="registry-intro notification-intro panel">
+          <div><span>AI-ASSISTED TRIAGE / REPRESENTATIVE</span><h2>See the signal. Approve the correction.</h2><p>Review operational notices, ask for a bounded diagnosis when assistance is useful, and keep a human decision between every suggestion and change.</p></div>
+          <button class="session-button" @click="setNotificationFilter('open')">{{ openNotificationCount }} open notices</button>
+        </section>
+
+        <section class="notification-stats" aria-label="Notification summary">
+          <article><span>OPEN</span><strong>{{ openNotificationCount }}</strong><p>Waiting for operator review</p></article>
+          <article><span>NEEDS ASSISTANCE</span><strong>{{ assistanceNotificationCount }}</strong><p>Assistant analysis is available</p></article>
+          <article><span>RESOLVED</span><strong>{{ resolvedNotificationCount }}</strong><p>Resolution evidence retained locally</p></article>
+        </section>
+
+        <section class="notification-layout">
+          <article class="notification-inbox panel" aria-label="Notification inbox">
+            <header>
+              <div><span>NOTIFICATION INBOX</span><strong>{{ visibleNotifications.length }} visible</strong></div>
+              <div class="notification-filters" role="group" aria-label="Filter notifications">
+                <button v-for="filter in notificationFilters" :key="filter.id" :class="{ active: notificationFilter === filter.id }" :aria-pressed="notificationFilter === filter.id" @click="setNotificationFilter(filter.id)">{{ filter.label }}</button>
+              </div>
+            </header>
+            <div class="notification-list">
+              <button v-for="item in visibleNotifications" :key="item.id" class="notification-row" :class="[{ selected: selectedNotification?.id === item.id }, item.severity]" @click="selectedNotificationId = item.id">
+                <i aria-hidden="true" />
+                <div>
+                  <span>{{ item.category }} · {{ item.time }}</span>
+                  <strong>{{ item.title }}</strong>
+                  <p>{{ item.summary }}</p>
+                  <small v-if="item.requiresAssistance && item.status === 'open'">AI assistance available</small>
+                  <small v-else>{{ item.status }}</small>
+                </div>
+              </button>
+              <p v-if="!visibleNotifications.length" class="empty">No notifications match this filter.</p>
+            </div>
+          </article>
+
+          <article v-if="selectedNotification" class="notification-detail panel" aria-live="polite">
+            <header>
+              <span class="severity-label" :class="selectedNotification.severity">{{ selectedNotification.severity }}</span>
+              <span class="notification-status" :class="selectedNotification.status">{{ selectedNotification.status }}</span>
+            </header>
+            <div class="notification-detail-body">
+              <span class="notification-id">{{ selectedNotification.id }}</span>
+              <h2>{{ selectedNotification.title }}</h2>
+              <p>{{ selectedNotification.summary }}</p>
+              <dl>
+                <div><dt>Source</dt><dd>{{ selectedNotification.source }}</dd></div>
+                <div><dt>Category</dt><dd>{{ selectedNotification.category }}</dd></div>
+                <div><dt>Observed</dt><dd>{{ selectedNotification.time }}</dd></div>
+                <div><dt>Related turn</dt><dd>{{ selectedNotification.relatedTurnId ?? 'None' }}</dd></div>
+              </dl>
+
+              <section class="assistant-workspace" aria-label="AI correction assistant">
+                <header><div><span>AI CORRECTION ASSISTANT</span><strong>Representative analysis</strong></div><b>HUMAN APPROVAL REQUIRED</b></header>
+
+                <div v-if="selectedNotification.status === 'resolved'" class="resolution-card">
+                  <span>RESOLUTION RECORDED</span>
+                  <p>{{ selectedNotification.resolution }}</p>
+                </div>
+
+                <div v-else-if="assistantWorkingId === selectedNotification.id" class="assistant-progress" role="status">
+                  <i /><div><strong>Analyzing evidence and policy constraints…</strong><p>Comparing the alert with the representative route and workspace configuration.</p></div>
+                </div>
+
+                <div v-else-if="assistantReady" class="assistant-answer">
+                  <span>DIAGNOSIS</span>
+                  <p>{{ selectedNotification.diagnosis }}</p>
+                  <span>CORRECTION PLAN</span>
+                  <ol><li v-for="step in selectedNotification.assistantPlan" :key="step">{{ step }}</li></ol>
+                  <div class="assistant-suggestion"><span>SUGGESTED CHANGE</span><strong>{{ selectedNotification.suggestedAction }}</strong></div>
+                  <button class="assistant-apply" @click="applyAssistantCorrection">Approve and apply correction →</button>
+                  <small>This updates representative dashboard state only. Persisted production changes would require a protected backend workflow.</small>
+                </div>
+
+                <div v-else-if="selectedNotification.requiresAssistance" class="assistant-prompt">
+                  <p>Ask the assistant to explain the evidence, identify the safest bounded correction, and prepare it for your approval.</p>
+                  <button @click="requestAssistantReview">Ask AI assistant →</button>
+                </div>
+
+                <div v-else class="assistant-prompt">
+                  <p>This informational notice does not require AI assistance or a configuration change.</p>
+                </div>
+              </section>
+            </div>
+            <footer>
+              <button v-if="selectedNotification.status === 'open'" @click="resolveNotification">Mark resolved manually</button>
+              <button v-else @click="reopenNotification">Reopen notification</button>
+              <button v-if="selectedNotification.relatedTurnId" class="primary" @click="viewNotificationTurn">View related turn →</button>
+            </footer>
+          </article>
         </section>
       </template>
 
@@ -368,7 +643,7 @@ useHead({
         <section class="comparison panel"><div class="panel-head"><div><span>DIRECT VS CASCADED</span><strong>Perception advantage by signal</strong></div><small>Last 7 days</small></div><div class="comparison-chart"><div v-for="(suite, index) in evaluationSuites" :key="suite.title"><span>{{ suite.title }}</span><i><b :style="{ width: `${72 + index * 6}%` }" /><em :style="{ width: `${48 + index * 4}%` }" /></i><strong>+{{ 18 - index * 2 }} pts</strong></div></div><footer><span><i class="direct-key" /> Direct audio</span><span><i class="base-key" /> STT baseline</span></footer></section>
       </template>
 
-      <template v-else>
+      <template v-else-if="activeView === 'controls'">
         <section class="registry-intro panel"><div><span>ACOUSTIC DATA CONTROLS</span><h2>Keep the signal. Control the footprint.</h2><p>Define what is retained, logged, redacted, and exposed to downstream applications.</p></div><div class="policy-actions"><span class="saved-state"><i /> {{ policyStatus }}</span><button class="session-button" :disabled="policySaving || isDemo" @click="savePolicy">Save policy</button></div></section>
         <section class="control-grid">
           <article class="control-card panel"><div><span>SHADOW TRANSCRIPTS</span><button class="mini-toggle" :class="{ on: shadowTranscripts }" @click="shadowTranscripts = !shadowTranscripts"><i /></button></div><h3>Generate text beside the direct path</h3><p>Use captions and debugging text without making it the model’s input.</p></article>
@@ -629,6 +904,445 @@ useHead({
   cursor: not-allowed;
 }
 
+.icon-button.active {
+  border-color: #c6ff4a70;
+  color: var(--d-lime);
+  background: #c6ff4a0a;
+}
+
+.notification-intro .session-button {
+  white-space: nowrap;
+}
+
+.notification-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 18px;
+  border-left: 1px solid var(--d-line);
+}
+
+.notification-stats article {
+  border: 1px solid var(--d-line);
+  border-left: 0;
+  background: var(--d-panel-2);
+  padding: 18px 20px;
+}
+
+.notification-stats span,
+.notification-id,
+.assistant-workspace span {
+  color: #697469;
+  letter-spacing: .13em;
+  font: 700 8px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.notification-stats strong {
+  display: block;
+  margin: 15px 0 7px;
+  font: 400 28px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.notification-stats p {
+  color: #6f796e;
+  font-size: 9px;
+  margin: 0;
+}
+
+.notification-layout {
+  display: grid;
+  grid-template-columns: minmax(330px, .8fr) minmax(420px, 1.2fr);
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.notification-inbox,
+.notification-detail {
+  min-width: 0;
+  align-self: start;
+}
+
+.notification-inbox > header {
+  min-height: 76px;
+  border-bottom: 1px solid var(--d-line);
+  padding: 14px 17px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.notification-inbox > header span,
+.notification-inbox > header strong {
+  display: block;
+}
+
+.notification-inbox > header span {
+  color: #697469;
+  letter-spacing: .13em;
+  font: 700 8px ui-monospace, SFMono-Regular, Menlo, monospace;
+  margin-bottom: 6px;
+}
+
+.notification-inbox > header strong {
+  font-size: 12px;
+}
+
+.notification-filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.notification-filters button {
+  border: 1px solid var(--d-line);
+  color: #778176;
+  padding: 6px 7px;
+  cursor: pointer;
+  font: 700 7px ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase;
+}
+
+.notification-filters button.active {
+  border-color: #c6ff4a50;
+  color: var(--d-lime);
+  background: #c6ff4a0a;
+}
+
+.notification-list {
+  padding: 7px;
+}
+
+.notification-row {
+  width: 100%;
+  border: 1px solid transparent;
+  border-bottom-color: var(--d-line);
+  padding: 16px 14px;
+  display: grid;
+  grid-template-columns: 7px 1fr;
+  gap: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notification-row:hover,
+.notification-row.selected {
+  background: #ffffff04;
+}
+
+.notification-row.selected {
+  border-color: #c6ff4a38;
+}
+
+.notification-row > i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #79d8ff;
+  margin-top: 4px;
+}
+
+.notification-row.warning > i {
+  background: #f2cf6d;
+  box-shadow: 0 0 10px #f2cf6d55;
+}
+
+.notification-row.critical > i {
+  background: #ff8066;
+  box-shadow: 0 0 10px #ff806655;
+}
+
+.notification-row span,
+.notification-row strong,
+.notification-row small {
+  display: block;
+}
+
+.notification-row span {
+  color: #697469;
+  text-transform: uppercase;
+  font: 700 7px ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .09em;
+}
+
+.notification-row strong {
+  color: var(--d-ink);
+  font-size: 12px;
+  line-height: 1.35;
+  margin-top: 7px;
+}
+
+.notification-row p {
+  color: #778176;
+  font-size: 9px;
+  line-height: 1.55;
+  margin: 7px 0 9px;
+}
+
+.notification-row small {
+  color: var(--d-lime);
+  font: 700 7px ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase;
+}
+
+.notification-detail > header {
+  min-height: 54px;
+  border-bottom: 1px solid var(--d-line);
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.severity-label,
+.notification-status {
+  border: 1px solid var(--d-line);
+  padding: 6px 8px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  font: 700 7px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.severity-label.warning {
+  color: #f2cf6d;
+  border-color: #f2cf6d45;
+}
+
+.severity-label.critical {
+  color: #ff9b86;
+  border-color: #ff806645;
+}
+
+.severity-label.info {
+  color: #79d8ff;
+  border-color: #79d8ff45;
+}
+
+.notification-status.open {
+  color: #f2cf6d;
+}
+
+.notification-status.resolved {
+  color: var(--d-lime);
+}
+
+.notification-detail-body {
+  padding: 25px;
+}
+
+.notification-detail h2 {
+  max-width: 650px;
+  font-size: 27px;
+  font-weight: 500;
+  letter-spacing: -.035em;
+  line-height: 1.12;
+  margin: 11px 0 12px;
+}
+
+.notification-detail-body > p {
+  color: #899488;
+  font-size: 11px;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.notification-detail dl {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  border: 1px solid var(--d-line);
+  margin: 22px 0;
+}
+
+.notification-detail dl div {
+  border-right: 1px solid var(--d-line);
+  border-bottom: 1px solid var(--d-line);
+  padding: 12px;
+}
+
+.notification-detail dl div:nth-child(2n) {
+  border-right: 0;
+}
+
+.notification-detail dl div:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+.notification-detail dt {
+  color: #687368;
+  font: 700 7px ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase;
+}
+
+.notification-detail dd {
+  color: #a9b2a7;
+  font-size: 9px;
+  margin: 7px 0 0;
+}
+
+.assistant-workspace {
+  border: 1px solid #79d8ff35;
+  background: linear-gradient(145deg, #79d8ff09, transparent 72%);
+}
+
+.assistant-workspace > header {
+  min-height: 62px;
+  border-bottom: 1px solid #79d8ff26;
+  padding: 12px 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.assistant-workspace > header span,
+.assistant-workspace > header strong {
+  display: block;
+}
+
+.assistant-workspace > header span {
+  color: #79d8ff;
+}
+
+.assistant-workspace > header strong {
+  font-size: 10px;
+  margin-top: 5px;
+}
+
+.assistant-workspace > header b {
+  color: #f2cf6d;
+  font: 700 7px ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .09em;
+}
+
+.assistant-prompt,
+.assistant-progress,
+.assistant-answer,
+.resolution-card {
+  padding: 18px;
+}
+
+.assistant-prompt p,
+.assistant-progress p,
+.assistant-answer p,
+.resolution-card p {
+  color: #8c978b;
+  font-size: 10px;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.assistant-prompt button,
+.assistant-apply {
+  background: #79d8ff;
+  color: #071014;
+  padding: 10px 12px;
+  margin-top: 15px;
+  cursor: pointer;
+  font: 800 8px ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase;
+}
+
+.assistant-progress {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.assistant-progress > i {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #79d8ff35;
+  border-top-color: #79d8ff;
+  border-radius: 50%;
+  animation: assistantSpin .8s linear infinite;
+}
+
+.assistant-progress strong {
+  display: block;
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+
+.assistant-answer > span,
+.resolution-card > span {
+  color: #79d8ff;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.assistant-answer ol {
+  color: #a3ada1;
+  margin: 9px 0 18px;
+  padding-left: 19px;
+  font-size: 9px;
+  line-height: 1.7;
+}
+
+.assistant-suggestion {
+  border-left: 2px solid #79d8ff;
+  background: #79d8ff08;
+  padding: 12px 14px;
+}
+
+.assistant-suggestion span,
+.assistant-suggestion strong {
+  display: block;
+}
+
+.assistant-suggestion strong {
+  font-size: 10px;
+  line-height: 1.55;
+  margin-top: 7px;
+}
+
+.assistant-answer > small {
+  color: #687368;
+  display: block;
+  font-size: 8px;
+  line-height: 1.5;
+  margin-top: 10px;
+}
+
+.resolution-card > span {
+  color: var(--d-lime);
+}
+
+.notification-detail > footer {
+  min-height: 60px;
+  border-top: 1px solid var(--d-line);
+  padding: 11px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.notification-detail > footer button {
+  border: 1px solid var(--d-line);
+  color: #899488;
+  padding: 9px 11px;
+  cursor: pointer;
+  font: 700 8px ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase;
+}
+
+.notification-detail > footer button.primary {
+  border-color: #c6ff4a50;
+  color: var(--d-lime);
+}
+
+.notification-row:focus-visible,
+.notification-filters button:focus-visible,
+.assistant-workspace button:focus-visible,
+.notification-detail > footer button:focus-visible {
+  outline: 2px solid var(--d-lime);
+  outline-offset: 2px;
+}
+
+@keyframes assistantSpin {
+  to { transform: rotate(360deg); }
+}
+
 @media (max-width: 760px) {
   .simulation-banner,
   .demo-banner {
@@ -648,6 +1362,34 @@ useHead({
 
   .onboarding > footer {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .notification-stats,
+  .notification-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .notification-inbox > header,
+  .assistant-workspace > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .notification-filters {
+    justify-content: flex-start;
+  }
+
+  .notification-detail-body {
+    padding: 18px;
+  }
+
+  .notification-detail h2 {
+    font-size: 23px;
+  }
+
+  .notification-detail > footer {
+    align-items: stretch;
     flex-direction: column;
   }
 }

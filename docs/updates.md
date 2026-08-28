@@ -2,6 +2,41 @@
 
 This document records meaningful product and implementation changes to Listen Direct.
 
+## 2026-08-24 — Guide-grounded AI Help Assistant
+
+### Added
+
+- Expanded the public Help Center with an interactive assistant grounded in all 12 maintained product guides.
+- Added free-form questions, five high-value starter prompts, documented match scoring, match-strength labels, and three-step action previews.
+- Added clear source attribution, full-guide handoff, related application links, a three-answer browser history, session clearing, keyboard submission, loading feedback, and responsive layouts.
+- Added privacy reminders and an explicit disclosure that the assistant is a representative browser-local experience.
+- Hardened the Help Center for mobile and tablet screens with constrained guide grids, contained horizontal filters, stacked assistant actions, larger touch targets, readable answer text, and mobile-safe form sizing.
+
+### Verified
+
+- The Help Center has no page-level horizontal overflow at 390px phone and 768px tablet widths.
+- Assistant prompts, clearing, full-guide handoff, related links, and submission controls meet a minimum 44px mobile touch target.
+- A representative notification question returns the correct guide and action steps on mobile.
+
+### Product boundary
+
+- The Help Assistant does not call an external generative model, inspect private workspace records, execute changes, or persist questions. It deterministically matches the question to maintained help content and leaves operational action under the user’s control.
+
+## 2026-08-24 — AI-assisted notification center
+
+### Added
+
+- Added Notifications as a first-class dashboard tab and connected the header badge to the inbox.
+- Added Open, Needs assistance, Resolved, and All filters with severity, source, category, timing, and related-turn context.
+- Added a representative AI correction assistant that produces a diagnosis, bounded plan, and exact suggested change.
+- Added explicit operator approval before a correction can update routing or privacy state.
+- Added manual resolution, reopening, related-turn navigation, resolution evidence, responsive layouts, and keyboard focus treatment.
+- Added notification how-tos to the in-app Help center and project documentation.
+
+### Product boundary
+
+- Notifications, assistant analysis, and corrections remain browser-local representative data. No external AI provider is called, and production execution will require authenticated backend authorization and durable audit logging.
+
 ## 2026-08-22 — Honest instant-demo experience
 
 ### Added

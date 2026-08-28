@@ -10,6 +10,7 @@ Listen Direct is a Nuxt 4 product prototype for operating reliable, privacy-awar
 - User and administrator accounts persist generated voice turns and data-policy settings; demo-role writes are blocked by the API and database.
 - Visitors can launch a passwordless guest sandbox at `/dashboard?demo=1`; it uses only browser-local representative data and cannot call protected APIs.
 - The guest sandbox includes a three-step tour for choosing a route, generating a representative turn, and inspecting its evidence.
+- The public Help Center includes 12 detailed guides and a browser-local AI Help Assistant that maps questions to documented steps without sending data to an external model.
 - Simulation labels distinguish representative metrics, models, pricing, and responses from connected production services.
 - Local type checking, production builds, schema linting, secret scanning, dependency auditing, and end-to-end Supabase tests pass.
 - The current source changes still need to be committed, pushed, and redeployed before they replace the existing public `chatgpt.site` build.
@@ -106,14 +107,14 @@ PostgreSQL row-level security limits profiles, memberships, turns, policies, and
 
 - `/` — product landing page and architecture overview
 - `/login` — role-aware authentication
-- `/dashboard` — authenticated operations dashboard for simulated turns, session review, model routing, audio evaluations, and acoustic-data controls
-- `/dashboard?demo=1` — passwordless, browser-only guest sandbox with guided onboarding and no protected API access
+- `/dashboard` — authenticated operations dashboard for simulated turns, AI-assisted notification triage, session review, model routing, audio evaluations, and acoustic-data controls
+- `/dashboard?demo=1` — passwordless, browser-only guest sandbox with guided onboarding, representative notification correction, and no protected API access
 - `/admin` — administrator-only identity and audit overview
-- `/help` — detailed product guidance, how-tos, troubleshooting, and demo-scope explanations
+- `/help` — 12 detailed product guides plus a guide-grounded, browser-local AI Help Assistant for direct answers and documented next steps
 - `/privacy` — privacy policy, cookie inventory, voice-data notice, and user choices
 - `/terms` — acceptable-use, account, voice/AI, disclaimer, and service terms
 
-The dashboard still simulates microphone capture and model responses, but signed-in user and administrator accounts now persist generated voice-turn records and data-policy settings in Supabase PostgreSQL. Live audio, model APIs, aggregate metrics, evaluations, and billing require additional backend integrations.
+The dashboard still simulates microphone capture, model responses, notifications, and AI correction suggestions, but signed-in user and administrator accounts now persist generated voice-turn records and data-policy settings in Supabase PostgreSQL. The Help Assistant uses deterministic in-browser guide matching rather than a generative provider. Live audio, model APIs, durable notifications, action-executing assistants, aggregate metrics, evaluations, and billing require additional backend integrations.
 
 ## Cookies and legal notices
 

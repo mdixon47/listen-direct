@@ -18,10 +18,21 @@ type HelpGuide = {
   related?: { label: string; to: string }[]
 }
 
+type AssistantStatus = 'idle' | 'thinking' | 'answered'
+
+type AssistantAnswer = {
+  id: number
+  question: string
+  answer: string
+  guide: HelpGuide
+  confidence: 'Strong match' | 'Likely match' | 'Best available match'
+  steps: HelpStep[]
+}
+
 const categories = [
-  { id: 'all', label: 'All guides', hint: '11' },
+  { id: 'all', label: 'All guides', hint: '12' },
   { id: 'start', label: 'Getting started', hint: '02' },
-  { id: 'operate', label: 'Operate', hint: '03' },
+  { id: 'operate', label: 'Operate', hint: '04' },
   { id: 'evaluate', label: 'Evaluate', hint: '02' },
   { id: 'privacy', label: 'Privacy', hint: '01' },
   { id: 'admin', label: 'Administration', hint: '01' },
@@ -96,6 +107,24 @@ const guides: HelpGuide[] = [
     ],
     checks: ['Turn ID is captured', 'Route decision is explained', 'Comparison uses the same condition'],
     related: [{ label: 'Open Sessions', to: '/dashboard' }],
+  },
+  {
+    id: 'resolve-notifications',
+    category: 'operate',
+    eyebrow: 'AI-ASSISTED HOW TO',
+    title: 'Review and correct a notification',
+    summary: 'Triage an operational notice, request a bounded assistant diagnosis, and approve or reject the suggested correction.',
+    time: '4 min',
+    audience: 'Demo · User · Admin',
+    steps: [
+      { title: 'Open Notifications', body: 'Choose Notifications in the dashboard navigation or select the header badge. The badge reflects the number of open representative notices.' },
+      { title: 'Filter and inspect the evidence', body: 'Filter by Open, Needs assistance, Resolved, or All. Select a notice to review its severity, source, category, observed time, related turn, and current status.' },
+      { title: 'Ask for help when it is useful', body: 'For notices labeled AI assistance available, select Ask AI assistant. The current assistant is a representative local workflow; it does not call an external AI provider.' },
+      { title: 'Review before applying', body: 'Read the diagnosis, correction plan, and exact suggested change. Select Approve and apply correction only when the bounded change matches your intent.' },
+      { title: 'Keep the operator in control', body: 'You can mark a notice resolved manually, reopen a resolved notice, or inspect a related turn. Production automation should require protected backend authorization and durable audit evidence.' },
+    ],
+    checks: ['Severity and source are understood', 'Suggested change is reviewed', 'Resolution evidence is visible'],
+    related: [{ label: 'Open Notifications', to: '/dashboard?demo=1&view=notifications' }, { label: 'Review AI terms', to: '/terms#voice' }],
   },
   {
     id: 'select-primary-model',
@@ -178,7 +207,7 @@ const guides: HelpGuide[] = [
       { title: 'Confirm the account type', body: 'Use Demo for the sandbox or the matching registered User/Admin account. An authenticated user still needs the required role for protected routes.' },
       { title: 'Retry with a fresh session', body: 'Sign out, return to Sign in, and authenticate again. Sessions are time-limited and use same-site Supabase cookies.' },
       { title: 'Check browser cookie restrictions', body: 'Strict privacy extensions or blocked site storage can prevent the authentication cookie from being retained. Allow essential storage for this site, then retry.' },
-      { title: 'Verify deployment configuration', body: 'For operators, confirm SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY are set in the hosting environment. Never place a secret or service-role key in public Nuxt configuration.' },
+      { title: 'Verify deployment configuration', body: 'For operators, confirm NUXT_PUBLIC_SUPABASE_URL and NUXT_PUBLIC_SUPABASE_KEY are set in the hosting environment. Never place a secret or service-role key in public Nuxt configuration.' },
       { title: 'Check role and membership', body: 'If sign-in works but Administration does not, verify the profile role and workspace membership in Supabase rather than bypassing the route guard.' },
     ],
     checks: ['Essential cookies are allowed', 'Public Supabase configuration is present', 'Role matches the requested route'],
@@ -225,6 +254,36 @@ const guides: HelpGuide[] = [
 const query = ref('')
 const activeCategory = ref<(typeof categories)[number]['id']>('all')
 const selectedGuideId = ref(guides[0]?.id ?? '')
+const assistantQuery = ref('')
+const assistantStatus = ref<AssistantStatus>('idle')
+const assistantAnswers = ref<AssistantAnswer[]>([])
+let assistantSequence = 0
+let assistantTimer: ReturnType<typeof setTimeout> | undefined
+
+const assistantPrompts = [
+  'Why did a voice turn fall back?',
+  'How do I correct a notification?',
+  'Why will my data policy not save?',
+  'What is safe to use in the demo?',
+  'How do I prepare for production?',
+]
+
+const assistantIntentTerms: Record<string, string[]> = {
+  'understand-the-demo': ['safe', 'demo', 'simulation', 'simulated', 'microphone', 'real audio', 'live model', 'temporary'],
+  'first-voice-turn': ['first turn', 'start turn', 'run turn', 'quickstart', 'getting started', 'begin'],
+  'choose-routing-mode': ['routing mode', 'adaptive', 'direct', 'standard', 'route choice', 'which route'],
+  'investigate-turns': ['slow', 'latency', 'fallback', 'fell back', 'session', 'turn id', 'investigate'],
+  'resolve-notifications': ['notification', 'notice', 'alert', 'correct', 'correction', 'resolve', 'ai assistance'],
+  'select-primary-model': ['primary model', 'model registry', 'codec', 'provider', 'perception score'],
+  'compare-audio-paths': ['compare', 'evaluation', 'eval', 'baseline', 'paired', 'direct versus standard'],
+  'configure-data-policy': ['privacy', 'retention', 'consent', 'shadow transcript', 'acoustic signal', 'data policy'],
+  'manage-access': ['admin', 'role', 'access', 'member', 'workspace', 'audit'],
+  'fix-sign-in': ['sign in', 'login', 'cookie', 'session expired', 'denied', 'authentication'],
+  'fix-turns-and-policies': ['will not save', "won't save", 'cannot save', 'policy not save', 'data policy not save', 'missing turn', 'disappeared', 'persistence', 'rls', 'policy error'],
+  'production-readiness': ['production', 'launch', 'deploy', 'readiness', 'go live', 'billing', 'real microphone'],
+}
+
+const assistantStopWords = new Set(['about', 'after', 'again', 'does', 'from', 'have', 'help', 'how', 'into', 'just', 'need', 'that', 'the', 'this', 'what', 'when', 'where', 'which', 'will', 'with', 'would', 'your'])
 
 const visibleGuides = computed(() => {
   const normalized = query.value.trim().toLowerCase()
@@ -259,13 +318,76 @@ function choosePath(category: typeof activeCategory.value, guideId: string) {
   nextTick(() => document.getElementById(guideId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
 }
 
+function scoreGuide(guide: HelpGuide, question: string) {
+  const normalized = question.toLowerCase()
+  const words = (normalized.match(/[a-z0-9]+/g) ?? []).filter(word => word.length > 2 && !assistantStopWords.has(word))
+  const title = guide.title.toLowerCase()
+  const searchable = [guide.eyebrow, guide.title, guide.summary, guide.audience, ...guide.steps.flatMap(step => [step.title, step.body]), ...guide.checks].join(' ').toLowerCase()
+  let score = words.reduce((total, word) => total + (title.includes(word) ? 3 : searchable.includes(word) ? 1 : 0), 0)
+
+  for (const term of assistantIntentTerms[guide.id] ?? []) {
+    if (normalized.includes(term)) score += term.includes(' ') ? 8 : 4
+  }
+
+  return score
+}
+
+function askAssistant(prompt?: string) {
+  const question = (prompt ?? assistantQuery.value).trim()
+  if (!question || assistantStatus.value === 'thinking') return
+
+  assistantQuery.value = question
+  assistantStatus.value = 'thinking'
+  if (assistantTimer) clearTimeout(assistantTimer)
+
+  assistantTimer = setTimeout(() => {
+    const ranked = guides
+      .map(guide => ({ guide, score: scoreGuide(guide, question) }))
+      .sort((a, b) => b.score - a.score)
+    const strongest = ranked[0]
+    const matched = strongest && strongest.score > 0 ? strongest : { guide: guides[0]!, score: 0 }
+    const confidence: AssistantAnswer['confidence'] = matched.score >= 12 ? 'Strong match' : matched.score >= 5 ? 'Likely match' : 'Best available match'
+    const answer = matched.score > 0
+      ? `${matched.guide.summary} Start with the documented actions below, then open the full guide for checks and related controls.`
+      : `I could not find an exact documented match. Start with the demo-scope guide below, or rephrase the question using a feature, symptom, or role.`
+
+    assistantSequence += 1
+    assistantAnswers.value = [...assistantAnswers.value.slice(-2), {
+      id: assistantSequence,
+      question,
+      answer,
+      guide: matched.guide,
+      confidence,
+      steps: matched.guide.steps.slice(0, 3),
+    }]
+    assistantQuery.value = ''
+    assistantStatus.value = 'answered'
+    nextTick(() => document.getElementById('assistant-latest')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
+  }, 620)
+}
+
+function openAssistantGuide(guide: HelpGuide) {
+  choosePath(guide.category, guide.id)
+}
+
+function clearAssistant() {
+  if (assistantTimer) clearTimeout(assistantTimer)
+  assistantQuery.value = ''
+  assistantAnswers.value = []
+  assistantStatus.value = 'idle'
+}
+
+onBeforeUnmount(() => {
+  if (assistantTimer) clearTimeout(assistantTimer)
+})
+
 watch(visibleGuides, (nextGuides) => {
   if (nextGuides.length && !nextGuides.some(guide => guide.id === selectedGuideId.value)) selectedGuideId.value = nextGuides[0]!.id
 })
 
 useHead({
   title: 'Help Center · Listen Direct',
-  meta: [{ name: 'description', content: 'Detailed setup, operations, evaluation, privacy, administration, and troubleshooting guides for Listen Direct.' }],
+  meta: [{ name: 'description', content: 'Detailed Listen Direct guides with a guide-grounded AI Help Assistant for setup, operations, privacy, administration, and troubleshooting.' }],
   link: [{ rel: 'icon', href: '/favicon.svg' }],
 })
 </script>
@@ -274,18 +396,66 @@ useHead({
   <main class="help-page">
     <nav class="help-nav" aria-label="Help navigation">
       <NuxtLink class="help-brand" to="/" aria-label="Listen Direct home"><span><i /><i /><i /></span><b>LISTEN<strong>/DIRECT</strong></b></NuxtLink>
-      <div><NuxtLink to="/">Product</NuxtLink><NuxtLink to="/privacy">Privacy</NuxtLink><NuxtLink class="help-nav-cta" to="/dashboard?demo=1">Try instant demo <b>↗</b></NuxtLink></div>
+      <div><a href="#help-assistant">AI Assistant</a><NuxtLink to="/privacy">Privacy</NuxtLink><NuxtLink class="help-nav-cta" to="/dashboard?demo=1">Try instant demo <b>↗</b></NuxtLink></div>
     </nav>
 
     <header class="help-hero">
-      <div class="help-hero-copy"><span><i /> PRODUCT HELP / VERSION 1.0</span><h1>Operate with<br><em>confidence.</em></h1><p>Practical guidance for exploring the demo, running voice operations, comparing audio paths, protecting data, and preparing a production deployment.</p></div>
+      <div class="help-hero-copy"><span><i /> PRODUCT HELP / VERSION 1.1</span><h1>Operate with<br><em>confidence.</em></h1><p>Practical guidance for exploring the demo, running voice operations, comparing audio paths, protecting data, and preparing a production deployment—with a guide-grounded assistant when you need a direct answer.</p></div>
       <label class="help-search"><span>⌕</span><input v-model="query" type="search" placeholder="Search routing, sessions, privacy…" aria-label="Search help guides"><kbd>HELP</kbd></label>
     </header>
 
     <section class="scope-note" aria-label="Demo scope"><strong>DEMO SCOPE</strong><p>The instant guest sandbox requires no account, while the current dashboard simulates voice activity and never requests microphone access or calls a live AI model.</p><NuxtLink to="/help#understand-the-demo">Read first →</NuxtLink></section>
 
+    <section id="help-assistant" class="help-assistant" aria-labelledby="assistant-title">
+      <header class="assistant-intro">
+        <div class="section-label"><span>01</span><div><p>GUIDE-GROUNDED ASSISTANT</p><h2 id="assistant-title">Ask. Understand. Act.</h2></div></div>
+        <div class="assistant-status"><i /> REPRESENTATIVE / LOCAL</div>
+      </header>
+
+      <div class="assistant-shell">
+        <aside class="assistant-brief">
+          <span>WHAT IT CAN DO</span>
+          <h3>Turn a question into a documented next step.</h3>
+          <p>The assistant matches your question to the 12 maintained help guides, explains the safest starting point, and links you to the full procedure.</p>
+          <ul><li><i />Troubleshoot a symptom</li><li><i />Explain a dashboard control</li><li><i />Find privacy and access guidance</li><li><i />Build a production checklist</li></ul>
+          <div class="assistant-boundary"><strong>HONEST BOUNDARY</strong><p>No external AI provider is connected. Questions stay in this browser and answers are assembled from the help content on this page.</p></div>
+        </aside>
+
+        <div class="assistant-console">
+          <header><div class="assistant-identity"><span>LD</span><div><strong>Help Assistant</strong><small>Grounded in maintained product guides</small></div></div><button v-if="assistantAnswers.length" type="button" @click="clearAssistant">Clear session</button></header>
+
+          <div class="assistant-conversation" aria-live="polite" aria-label="AI help conversation">
+            <div v-if="!assistantAnswers.length && assistantStatus !== 'thinking'" class="assistant-empty">
+              <span>READY</span><h3>What are you trying to do?</h3><p>Describe the task, the problem you see, or the role you are working in. Do not include passwords, keys, customer audio, or personal data.</p>
+            </div>
+
+            <article v-for="(answer, answerIndex) in assistantAnswers" :id="answerIndex === assistantAnswers.length - 1 ? 'assistant-latest' : undefined" :key="answer.id" class="assistant-answer">
+              <div class="assistant-question"><span>YOU</span><p>{{ answer.question }}</p></div>
+              <div class="assistant-reply">
+                <div class="assistant-reply-meta"><span>HELP ASSISTANT</span><b>{{ answer.confidence }}</b></div>
+                <p>{{ answer.answer }}</p>
+                <div class="assistant-source"><small>RECOMMENDED GUIDE · {{ answer.guide.time }}</small><strong>{{ answer.guide.title }}</strong><p>{{ answer.guide.summary }}</p></div>
+                <ol><li v-for="(step, stepIndex) in answer.steps" :key="step.title"><span>{{ String(stepIndex + 1).padStart(2, '0') }}</span><div><strong>{{ step.title }}</strong><p>{{ step.body }}</p></div></li></ol>
+                <div class="assistant-actions"><button type="button" @click="openAssistantGuide(answer.guide)">Open full guide <b>↓</b></button><NuxtLink v-if="answer.guide.related?.[0]" :to="answer.guide.related[0].to">{{ answer.guide.related[0].label }} <b>↗</b></NuxtLink></div>
+              </div>
+            </article>
+
+            <div v-if="assistantStatus === 'thinking'" class="assistant-thinking"><span><i /><i /><i /></span><p>Matching your question to maintained guidance…</p></div>
+          </div>
+
+          <div class="assistant-prompts" aria-label="Suggested help questions"><button v-for="prompt in assistantPrompts" :key="prompt" type="button" :disabled="assistantStatus === 'thinking'" @click="askAssistant(prompt)">{{ prompt }}</button></div>
+
+          <form class="assistant-form" @submit.prevent="askAssistant()">
+            <label for="assistant-question">Ask the Help Assistant</label>
+            <div><textarea id="assistant-question" v-model="assistantQuery" rows="2" maxlength="240" placeholder="Example: Why did my turn fall back to Standard?" :disabled="assistantStatus === 'thinking'" @keydown.meta.enter.prevent="askAssistant()" @keydown.ctrl.enter.prevent="askAssistant()" /><button type="submit" :disabled="!assistantQuery.trim() || assistantStatus === 'thinking'"><span>{{ assistantStatus === 'thinking' ? 'Working' : 'Ask assistant' }}</span><b>↗</b></button></div>
+            <p>Grounded guidance only · No secrets or customer data · Ctrl/⌘ + Enter to send</p>
+          </form>
+        </div>
+      </div>
+    </section>
+
     <section class="quick-paths" aria-labelledby="quick-paths-title">
-      <div class="section-label"><span>01</span><div><p>CHOOSE YOUR PATH</p><h2 id="quick-paths-title">Start with your role.</h2></div></div>
+      <div class="section-label"><span>02</span><div><p>CHOOSE YOUR PATH</p><h2 id="quick-paths-title">Start with your role.</h2></div></div>
       <div class="path-grid">
         <button @click="choosePath('start', 'first-voice-turn')"><span>DEMO</span><strong>Explore safely</strong><p>Launch instantly and learn the workflow without an account.</p><b>3 guided moves →</b></button>
         <button @click="choosePath('operate', 'choose-routing-mode')"><span>BUILDER</span><strong>Route and measure</strong><p>Compare direct listening with the reliable baseline.</p><b>3 core workflows →</b></button>
@@ -295,7 +465,7 @@ useHead({
 
     <section id="guides" class="help-library" aria-labelledby="guide-library-title">
       <aside>
-        <div class="library-label"><span>02</span><p id="guide-library-title">GUIDE LIBRARY</p></div>
+        <div class="library-label"><span>03</span><p id="guide-library-title">GUIDE LIBRARY</p></div>
         <div class="category-list" role="group" aria-label="Filter guides by category">
           <button v-for="category in categories" :key="category.id" :class="{ active: activeCategory === category.id }" @click="activeCategory = category.id"><span>{{ category.label }}</span><b>{{ category.hint }}</b></button>
         </div>
@@ -326,13 +496,13 @@ useHead({
     </section>
 
     <section class="help-glossary">
-      <div class="section-label"><span>03</span><div><p>QUICK REFERENCE</p><h2>Terms you will see.</h2></div></div>
+      <div class="section-label"><span>04</span><div><p>QUICK REFERENCE</p><h2>Terms you will see.</h2></div></div>
       <dl><div><dt>Direct</dt><dd>The representative audio signal goes to an audio-input model without transcription as the reasoning input.</dd></div><div><dt>Standard</dt><dd>The cascaded baseline: speech-to-text, text reasoning, then speech synthesis.</dd></div><div><dt>Adaptive</dt><dd>A route gate chooses Direct or Standard using capability, confidence, latency, and policy.</dd></div><div><dt>Shadow transcript</dt><dd>Optional text generated beside the direct path for captions, search, debugging, or audits.</dd></div><div><dt>Acoustic signals</dt><dd>Non-text features such as pitch, energy, cadence, and turn-taking behavior.</dd></div><div><dt>RLS</dt><dd>Supabase PostgreSQL row-level security that enforces workspace access at the data layer.</dd></div></dl>
     </section>
 
     <section class="help-cta"><div><span>READY TO TRY IT?</span><h2>Learn by operating.</h2><p>Launch the browser-only sandbox and use these guides alongside the dashboard.</p></div><div><NuxtLink class="primary" to="/dashboard?demo=1">Try instant demo <b>↗</b></NuxtLink><NuxtLink to="/login">Sign in</NuxtLink></div></section>
 
-    <footer class="help-footer"><NuxtLink class="help-brand" to="/"><span><i /><i /><i /></span><b>LISTEN<strong>/DIRECT</strong></b></NuxtLink><p>Help Center · Updated August 22, 2026</p><div><NuxtLink to="/privacy">Privacy</NuxtLink><NuxtLink to="/terms">Terms</NuxtLink><a href="#top">Top ↑</a></div></footer>
+    <footer class="help-footer"><NuxtLink class="help-brand" to="/"><span><i /><i /><i /></span><b>LISTEN<strong>/DIRECT</strong></b></NuxtLink><p>Help Center · Updated August 24, 2026</p><div><NuxtLink to="/privacy">Privacy</NuxtLink><NuxtLink to="/terms">Terms</NuxtLink><a href="#top">Top ↑</a></div></footer>
   </main>
 </template>
 

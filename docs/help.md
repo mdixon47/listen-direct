@@ -12,6 +12,34 @@ This document mirrors the public `/help` experience and gives maintainers a dura
 - Registered user and administrator accounts persist generated turn metadata and data-policy settings in Supabase.
 - The product uses Supabase authentication, server-side authorization checks, and PostgreSQL row-level security.
 
+## How to use the AI Help Assistant
+
+Open `/help#help-assistant` to ask a task, feature, or troubleshooting question in plain language. The assistant is designed to shorten the path from a symptom to a maintained procedure while keeping the full guide library available for deeper review.
+
+1. Describe what you are trying to do or the symptom you see. Include the relevant role, dashboard area, route, or status when known.
+2. Use a suggested question when you want a quick starting point for fallbacks, notifications, policy persistence, demo safety, or production readiness.
+3. Review the match-strength label and the recommended guide. The answer names the guide that supplied its guidance.
+4. Follow the first three documented actions shown in the response.
+5. Select **Open full guide** to review every step, success check, and related control.
+6. Use the related application link only after confirming that it matches your intended task.
+7. Select **Clear session** to remove the current browser-only conversation.
+
+The assistant can help with:
+
+- Getting started and understanding the honest demo boundary
+- Choosing routes and investigating slow or fallback turns
+- Reviewing AI-assisted notifications with human approval
+- Selecting models and comparing Direct with Standard
+- Configuring privacy, retention, consent, and acoustic-signal controls
+- Resolving sign-in, role, persistence, and RLS problems
+- Building a production-readiness checklist
+
+### Assistant privacy and accuracy boundary
+
+The current Help Assistant is a deterministic, browser-local matching experience—not a connected generative model. It scores the question against the 12 maintained guides, returns the strongest documented match, and keeps at most the three most recent answers in page memory. It does not send questions to an external AI provider, execute changes, inspect private workspace records, or persist the conversation.
+
+Do not enter passwords, API keys, authentication tokens, customer audio, transcripts, or personal data. Treat **Best available match** as a prompt to rephrase the question or read the full guide. The dashboard notification assistant is a separate representative workflow and still requires explicit operator approval before applying a simulated correction.
+
 ## Access modes and roles
 
 | Access | Intended use | Persistence | Key restrictions |
@@ -58,6 +86,19 @@ Use Standard as the cascaded STT + LLM baseline. It is useful for reliability co
 6. Reproduce the condition through Direct and Standard, then compare it in Audio evals.
 
 Do not treat every fallback as a failure. A reliable fallback is an expected safety and compatibility mechanism.
+
+## How to review and correct a notification
+
+1. Open **Notifications** from the dashboard sidebar or select the header badge.
+   You can also open `/dashboard?demo=1&view=notifications` for a direct guest-sandbox preview.
+2. Filter the inbox by **Open**, **Needs assistance**, **Resolved**, or **All**.
+3. Select a notice and review its severity, source, category, time, related turn, and status.
+4. If the notice offers assistance, select **Ask AI assistant**.
+5. Review the representative diagnosis, correction plan, and exact suggested change.
+6. Select **Approve and apply correction** only when the suggestion matches your intent, or choose **Mark resolved manually** without applying a change.
+7. Reopen a resolved notice when more investigation is required.
+
+The current assistant is a local product simulation and does not call an external AI provider. Corrections update representative dashboard state only. A production implementation must authenticate every action, enforce workspace authorization, validate policy constraints, and write durable audit evidence.
 
 ## How to select a primary model
 
