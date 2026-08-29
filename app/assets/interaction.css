@@ -38,13 +38,17 @@
   cursor: pointer;
   position: relative;
   text-align: left;
-  transition: border-color 260ms ease, background 260ms ease, box-shadow 260ms ease, transform 260ms ease;
+  transition:
+    border-color 260ms ease,
+    background 260ms ease,
+    box-shadow 260ms ease,
+    transform 260ms ease;
 }
 
 .pipeline .step::after {
   background: var(--lime);
   bottom: -1px;
-  content: '';
+  content: "";
   height: 2px;
   left: -1px;
   position: absolute;
@@ -67,7 +71,9 @@
 .pipeline .step.is-active {
   background: linear-gradient(145deg, #c6ff4a20, #111711 72%);
   border-color: var(--lime);
-  box-shadow: 0 12px 34px #00000052, 0 0 28px #c6ff4a0f;
+  box-shadow:
+    0 12px 34px #00000052,
+    0 0 28px #c6ff4a0f;
   transform: translateY(-5px);
 }
 
@@ -85,7 +91,9 @@
 
 .connector {
   position: relative;
-  transition: color 260ms ease, text-shadow 260ms ease;
+  transition:
+    color 260ms ease,
+    text-shadow 260ms ease;
 }
 
 .connector.is-live {
@@ -115,13 +123,21 @@
 
 .explainer-label span {
   color: var(--lime);
-  font: 700 9px ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: .14em;
+  font:
+    700 9px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  letter-spacing: 0.14em;
 }
 
 .explainer-label b {
   color: var(--dim);
-  font: 400 20px ui-monospace, SFMono-Regular, Menlo, monospace;
+  font:
+    400 20px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
   margin-top: 12px;
 }
 
@@ -144,8 +160,12 @@
   border: 1px solid #34452c;
   color: var(--muted);
   cursor: pointer;
-  font: 700 9px ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: .12em;
+  font:
+    700 9px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  letter-spacing: 0.12em;
   padding: 11px 12px;
   white-space: nowrap;
 }
@@ -186,7 +206,9 @@
 
 .stage-copy-enter-active,
 .stage-copy-leave-active {
-  transition: opacity 180ms ease, transform 180ms ease;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
 }
 
 .stage-copy-enter-from {
@@ -200,14 +222,19 @@
 }
 
 @keyframes pipeline-progress {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
 @keyframes connector-travel {
-  50% { transform: translateX(3px); }
+  50% {
+    transform: translateX(3px);
+  }
 }
-
 
 .roadmap .section-head {
   margin-bottom: 38px;
@@ -225,10 +252,14 @@
   border-bottom: 1px solid var(--line);
   color: var(--dim);
   display: flex;
-  font: 700 9px ui-monospace, SFMono-Regular, Menlo, monospace;
+  font:
+    700 9px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
   height: 52px;
   justify-content: space-between;
-  letter-spacing: .16em;
+  letter-spacing: 0.16em;
   padding: 0 22px;
 }
 
@@ -274,7 +305,9 @@
   min-height: 74px;
   padding: 13px 14px;
   text-align: left;
-  transition: background 180ms ease, color 180ms ease;
+  transition:
+    background 180ms ease,
+    color 180ms ease;
 }
 
 .trust-selector button:last-child {
@@ -283,8 +316,12 @@
 
 .trust-selector button span {
   color: var(--dim);
-  font: 700 7px ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: .1em;
+  font:
+    700 7px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  letter-spacing: 0.1em;
 }
 
 .trust-selector button strong {
@@ -315,7 +352,7 @@
 
 .roadmap-story {
   display: grid;
-  grid-template-columns: 92px minmax(250px, .8fr) minmax(0, 1.7fr);
+  grid-template-columns: 92px minmax(250px, 0.8fr) minmax(0, 1.7fr);
   min-height: 254px;
 }
 
@@ -324,7 +361,11 @@
   border-right: 1px solid var(--line);
   color: #c6ff4a22;
   display: flex;
-  font: 400 48px/.9 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font:
+    400 48px/0.9 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
   justify-content: center;
   padding-top: 30px;
 }
@@ -341,14 +382,18 @@
 .story-intro > span,
 .story-details span {
   color: var(--lime);
-  font: 700 9px ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: .15em;
+  font:
+    700 9px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  letter-spacing: 0.15em;
 }
 
 .story-intro h3 {
   font-size: clamp(25px, 2.6vw, 36px);
   font-weight: 500;
-  letter-spacing: -.045em;
+  letter-spacing: -0.045em;
   line-height: 1;
   margin: 18px 0 16px;
 }
@@ -372,8 +417,12 @@
 .story-intro li {
   border: 1px solid #293529;
   color: var(--muted);
-  font: 700 7px ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: .08em;
+  font:
+    700 7px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  letter-spacing: 0.08em;
   list-style: none;
   padding: 5px 7px;
   text-transform: uppercase;
@@ -421,7 +470,9 @@
 
 .trust-story-enter-active,
 .trust-story-leave-active {
-  transition: opacity 220ms ease, transform 220ms ease;
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease;
 }
 
 .trust-story-enter-from {
@@ -435,8 +486,12 @@
 }
 
 @keyframes trust-progress {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
 .pricing {
@@ -468,7 +523,8 @@
 }
 
 .pricing-card.featured {
-  background: radial-gradient(circle at 90% 6%, #c6ff4a1e, transparent 16rem), #111713;
+  background:
+    radial-gradient(circle at 90% 6%, #c6ff4a1e, transparent 16rem), #111713;
   box-shadow: inset 0 3px var(--lime);
 }
 
@@ -484,8 +540,12 @@
 .pricing-note > span,
 .closing-cta-inner > div > span {
   color: var(--lime);
-  font: 700 8px ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: .15em;
+  font:
+    700 8px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  letter-spacing: 0.15em;
 }
 
 .pricing-meta b {
@@ -496,7 +556,7 @@
 .pricing-card h3 {
   font-size: 26px;
   font-weight: 500;
-  letter-spacing: -.035em;
+  letter-spacing: -0.035em;
   margin: 48px 0 10px;
 }
 
@@ -509,12 +569,16 @@
 .plan-price strong {
   font-size: 54px;
   font-weight: 500;
-  letter-spacing: -.055em;
+  letter-spacing: -0.055em;
 }
 
 .plan-price span {
   color: var(--dim);
-  font: 9px ui-monospace, SFMono-Regular, Menlo, monospace;
+  font:
+    9px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
 }
 
 .pricing-card > p {
@@ -535,7 +599,11 @@
 }
 
 .usage-rate strong {
-  font: 600 11px ui-monospace, SFMono-Regular, Menlo, monospace;
+  font:
+    600 11px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
 }
 
 .pricing-card ul {
@@ -556,16 +624,24 @@
 
 .pricing-card li i {
   color: var(--lime);
-  font: 700 9px ui-monospace, SFMono-Regular, Menlo, monospace;
+  font:
+    700 9px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
 }
 
 .pricing-card > a {
   align-items: center;
   border: 1px solid #34402f;
   display: flex;
-  font: 700 9px ui-monospace, SFMono-Regular, Menlo, monospace;
+  font:
+    700 9px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
   justify-content: space-between;
-  letter-spacing: .1em;
+  letter-spacing: 0.1em;
   margin-top: auto;
   padding: 15px;
   text-transform: uppercase;
@@ -593,7 +669,11 @@
   border-left: 1px solid var(--line);
   border-right: 1px solid var(--line);
   color: var(--dim);
-  font: 9px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font:
+    9px/1.7 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
   margin: 0;
   padding: 18px 22px;
 }
@@ -611,8 +691,12 @@
 
 .pricing-preview span {
   color: #f2cf6d;
-  font: 700 8px ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: .14em;
+  font:
+    700 8px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  letter-spacing: 0.14em;
 }
 
 .pricing-preview p {
@@ -627,7 +711,8 @@
 }
 
 .closing-cta {
-  background: radial-gradient(circle at 20% 50%, #c6ff4a18, transparent 28rem), #0c110d;
+  background:
+    radial-gradient(circle at 20% 50%, #c6ff4a18, transparent 28rem), #0c110d;
   border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
 }
@@ -636,21 +721,21 @@
   align-items: center;
   display: grid;
   gap: 80px;
-  grid-template-columns: 1.15fr .85fr;
+  grid-template-columns: 1.15fr 0.85fr;
   min-height: 440px;
 }
 
 .closing-cta h2 {
   font-size: clamp(44px, 5.4vw, 72px);
   font-weight: 500;
-  letter-spacing: -.055em;
-  line-height: .98;
+  letter-spacing: -0.055em;
+  line-height: 0.98;
   margin: 20px 0 0;
 }
 
 .closing-cta h2 em {
   color: var(--lime);
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-weight: 400;
 }
 
@@ -678,8 +763,12 @@
 
 .secondary-button {
   border: 1px solid #34402f;
-  font: 700 9px ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: .1em;
+  font:
+    700 9px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  letter-spacing: 0.1em;
   padding: 15px 17px;
   text-transform: uppercase;
 }

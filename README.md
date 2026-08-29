@@ -12,7 +12,7 @@ Listen Direct is a Nuxt 4 product prototype for operating reliable, privacy-awar
 - The guest sandbox includes a three-step tour for choosing a route, generating a representative turn, and inspecting its evidence.
 - The public Help Center includes 12 detailed guides and a browser-local AI Help Assistant that maps questions to documented steps without sending data to an external model.
 - Simulation labels distinguish representative metrics, models, pricing, and responses from connected production services.
-- Local type checking, production builds, schema linting, secret scanning, dependency auditing, and end-to-end Supabase tests pass.
+- Local formatting checks, unit tests, type checking, production builds, secret scanning, dependency auditing, and anonymous route-boundary integration tests pass.
 - The current source changes still need to be committed, pushed, and redeployed before they replace the existing public `chatgpt.site` build.
 - Microphone capture, realtime audio-model calls, billing, production SMTP, recovery flows, invitations, and administrator MFA remain future work.
 
@@ -62,6 +62,8 @@ A practical initial offer is: **“Add reliable audio-native AI to your applicat
 Requires Node.js 22.19+, 24.11+, or 26+.
 
 Recommended local runtime: Node.js 24 LTS.
+
+The committed `.nvmrc` pins the recommended runtime. Run `nvm use` before installing dependencies when NVM is available.
 
 ## Run locally
 
@@ -133,9 +135,11 @@ No analytics provider is connected yet. The Privacy Policy and Terms of Use desc
 
 The repository includes a security baseline for local development and GitHub:
 
-- `npm run security:secrets` scans source files for high-confidence credentials and unsafe secret filenames.
+- `npm run security:secrets` scans source files for high-confidence credentials, common vendor token formats, and unsafe secret filenames.
 - `npm run security:audit` fails on high or critical npm advisories.
-- GitHub CI installs the lockfile with lifecycle scripts disabled, scans for secrets, audits production dependencies, and builds the application.
+- `npm test` covers guest-route isolation and login-throttling behavior with Node's built-in test runner.
+- `npm run test:integration` verifies the built server keeps guest access page-only and returns `401` from protected APIs.
+- GitHub CI installs the lockfile with lifecycle scripts disabled, checks formatting, scans for secrets, audits production dependencies, runs tests, and builds the application.
 - CodeQL runs extended JavaScript and TypeScript security queries on pushes, pull requests, and a weekly schedule.
 - Dependabot checks npm packages and pinned GitHub Actions weekly.
 - Runtime middleware adds CSP, anti-framing, MIME-sniffing, referrer, permissions, cross-origin, and HSTS headers.
@@ -152,6 +156,8 @@ See [`docs/devsecops.md`](docs/devsecops.md) for repository settings, deployment
 - [`docs/help.md`](docs/help.md) — durable help-center content and operator how-tos
 - [`docs/devsecops.md`](docs/devsecops.md) — security gates, GitHub controls, and deployment checklist
 - [`SECURITY.md`](SECURITY.md) — vulnerability reporting and security scope
+
+Run the complete local quality gate with `npm run verify`. It checks formatting and types, runs unit and security checks, creates a production build, and then verifies the guest/authentication boundary against that build.
 
 Create a production build with `npm run build`, or generate a static deployment with `npm run generate`.
 

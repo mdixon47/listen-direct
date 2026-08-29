@@ -1,78 +1,133 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs'
-import { basename, extname, join, relative } from 'node:path'
-import { execFileSync } from 'node:child_process'
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { basename, extname, join, relative } from "node:path";
+import { execFileSync } from "node:child_process";
 
-const root = new URL('../', import.meta.url).pathname
+const root = new URL("../", import.meta.url).pathname;
 const ignoredDirectories = new Set([
-  '.git', '.nuxt', '.output', '.nitro', '.data', 'node_modules',
-  '.temp', '.branches', 'coverage', 'dist', 'outputs', 'work',
-])
-const blockedExtensions = new Set(['.key', '.pem', '.p12', '.pfx'])
-const blockedNames = [/^\.env(?:\..+)?$/, /^credentials.*\.json$/i, /^service-account.*\.json$/i]
-const allowedNames = new Set(['.env.example'])
-const findings = []
+  ".git",
+  ".nuxt",
+  ".output",
+  ".nitro",
+  ".data",
+  "node_modules",
+  ".temp",
+  ".branches",
+  "coverage",
+  "dist",
+  "outputs",
+  "work",
+]);
+const blockedExtensions = new Set([".key", ".pem", ".p12", ".pfx"]);
+const blockedNames = [
+  /^\.env(?:\..+)?$/,
+  /^credentials.*\.json$/i,
+  /^service-account.*\.json$/i,
+];
+const allowedNames = new Set([".env.example"]);
+const findings = [];
 
 const contentPatterns = [
-  ['private key', new RegExp(['BEGIN', '(?:RSA |EC |OPENSSH )?', 'PRIVATE KEY'].join(' '))],
-  ['AWS access key', new RegExp('AK' + 'IA[0-9A-Z]{16}')],
-  ['GitHub token', new RegExp('gh' + '[pousr]_[A-Za-z0-9]{36,255}')],
-  ['API secret', new RegExp('sk-' + '(?:proj-)?[A-Za-z0-9_-]{24,}')],
-]
+  [
+    "private key",
+    new RegExp(["BEGIN", "(?:RSA |EC |OPENSSH )?", "PRIVATE KEY"].join(" ")),
+  ],
+  ["AWS access key", new RegExp("AK" + "IA[0-9A-Z]{16}")],
+  ["GitHub token", new RegExp("gh" + "[pousr]_[A-Za-z0-9]{36,255}")],
+  ["API secret", new RegExp("sk-" + "(?:proj-)?[A-Za-z0-9_-]{24,}")],
+  ["npm token", new RegExp("npm_" + "[A-Za-z0-9]{36,}")],
+  ["Slack token", new RegExp("xox" + "[abprs]-[A-Za-z0-9-]{10,}")],
+  ["Stripe live secret", new RegExp("sk_" + "live_[A-Za-z0-9]{16,}")],
+  ["Supabase secret key", new RegExp("sb_" + "secret_[A-Za-z0-9_-]{20,}")],
+  [
+    "SendGrid token",
+    new RegExp("SG" + "\\.[A-Za-z0-9_-]{20,}\\.[A-Za-z0-9_-]{20,}"),
+  ],
+  ["Google API key", new RegExp("AI" + "za[0-9A-Za-z_-]{32,}")],
+  ["Twilio API key", new RegExp("SK" + "[0-9a-fA-F]{32}")],
+  ["Netlify token", new RegExp("nfp_" + "[A-Za-z0-9_-]{24,}")],
+];
 
 function isGitIgnored(path) {
   try {
-    execFileSync('git', ['check-ignore', '--quiet', '--', path], { cwd: root, stdio: 'ignore' })
-    return true
+    execFileSync("git", ["check-ignore", "--quiet", "--", path], {
+      cwd: root,
+      stdio: "ignore",
+    });
+    return true;
   } catch {
-    return false
+    return false;
   }
 }
 
 function visit(directory) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    if (entry.isDirectory() && ignoredDirectories.has(entry.name)) continue
+    if (entry.isDirectory() && ignoredDirectories.has(entry.name)) continue;
 
-    const absolutePath = join(directory, entry.name)
-    const projectPath = relative(root, absolutePath)
+    const absolutePath = join(directory, entry.name);
+    const projectPath = relative(root, absolutePath);
 
     if (entry.isDirectory()) {
-      visit(absolutePath)
-      continue
+      visit(absolutePath);
+      continue;
     }
 
-    if (!entry.isFile()) continue
+    if (!entry.isFile()) continue;
 
-    const fileName = basename(entry.name)
-    const isBlockedName = blockedNames.some(pattern => pattern.test(fileName))
-    if (!allowedNames.has(fileName) && (isBlockedName || blockedExtensions.has(extname(fileName)))) {
-      if (!isGitIgnored(absolutePath)) findings.push(`${projectPath}: sensitive filename is not ignored by Git`)
-      continue
+    const fileName = basename(entry.name);
+    const isBlockedName = blockedNames.some((pattern) =>
+      pattern.test(fileName),
+    );
+    if (
+      !allowedNames.has(fileName) &&
+      (isBlockedName || blockedExtensions.has(extname(fileName)))
+    ) {
+      if (!isGitIgnored(absolutePath))
+        findings.push(
+          `${projectPath}: sensitive filename is not ignored by Git`,
+        );
+      continue;
     }
 
-    if (projectPath === 'scripts/security-check.mjs' || statSync(absolutePath).size > 1_000_000) continue
+    if (
+      projectPath === "scripts/security-check.mjs" ||
+      statSync(absolutePath).size > 1_000_000
+    )
+      continue;
 
-    const contents = readFileSync(absolutePath)
-    if (contents.includes(0)) continue
+    const contents = readFileSync(absolutePath);
+    if (contents.includes(0)) continue;
 
-    const text = contents.toString('utf8')
+    const text = contents.toString("utf8");
     for (const [label, pattern] of contentPatterns) {
-      if (pattern.test(text)) findings.push(`${projectPath}: possible ${label}`)
+      if (pattern.test(text))
+        findings.push(`${projectPath}: possible ${label}`);
     }
   }
 }
 
-visit(root)
+visit(root);
 
-const ignoreFile = readFileSync(join(root, '.gitignore'), 'utf8')
-const requiredIgnores = ['.env', '.env.*', 'secrets/', '*.key', '*.pem', 'node_modules/', '.output/']
+const ignoreFile = readFileSync(join(root, ".gitignore"), "utf8");
+const requiredIgnores = [
+  ".env",
+  ".env.*",
+  "secrets/",
+  "*.key",
+  "*.pem",
+  "node_modules/",
+  ".output/",
+];
 for (const rule of requiredIgnores) {
-  if (!ignoreFile.split(/\r?\n/).includes(rule)) findings.push(`.gitignore: missing ${rule}`)
+  if (!ignoreFile.split(/\r?\n/).includes(rule))
+    findings.push(`.gitignore: missing ${rule}`);
 }
 
 if (findings.length) {
-  console.error('Security check failed:')
-  for (const finding of findings) console.error(`- ${finding}`)
-  process.exitCode = 1
+  console.error("Security check failed:");
+  for (const finding of findings) console.error(`- ${finding}`);
+  process.exitCode = 1;
 } else {
-  console.log('Security check passed: no high-confidence secret files or tokens detected.')
+  console.log(
+    "Security check passed: no high-confidence secret files or tokens detected.",
+  );
 }

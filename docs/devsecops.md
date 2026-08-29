@@ -7,15 +7,11 @@ This project treats security checks as part of development, review, deployment, 
 Run these before opening a pull request:
 
 ```bash
-npm run typecheck
-npm run security:secrets
-npm audit --omit=dev --audit-level=high
-NUXT_PUBLIC_SUPABASE_URL="https://example.supabase.co" \
-NUXT_PUBLIC_SUPABASE_KEY="sb_publishable_local_placeholder" \
-npm run build
+nvm use
+npm run verify
 ```
 
-`security:secrets` checks source files for common private keys and access tokens, rejects sensitive filenames unless Git ignores them, and verifies required `.gitignore` rules. It intentionally avoids package dependencies and network access. The npm audit uses the public advisory service and therefore requires network access.
+`verify` checks formatting and TypeScript, runs unit regressions, scans for secrets, audits dependencies, builds the production server, and exercises the anonymous guest/authentication boundary against that build. `security:secrets` checks source files for private keys and common vendor tokens, rejects sensitive filenames unless Git ignores them, and verifies required `.gitignore` rules. It intentionally avoids network access. The npm audit uses the public advisory service and therefore requires network access.
 
 Never commit a real `.env` file, deployment secret, model-provider key, customer audio, transcript, or personal data. `.env.example` must contain placeholders only.
 
@@ -29,7 +25,7 @@ The instant demo at `/dashboard?demo=1` is intentionally public, but only as a b
 4. Server routes still resolve authenticated users and enforce workspace roles independently.
 5. PostgreSQL row-level security remains active for every Supabase-backed operation.
 
-Treat `demo=1` only as a presentation-mode flag. It must never be accepted as proof of identity, workspace membership, or authorization. Add regression coverage whenever middleware, dashboard data loading, or protected APIs change.
+Treat `demo=1` only as a presentation-mode flag. It must never be accepted as proof of identity, workspace membership, or authorization. The committed unit and production-server integration tests guard this boundary; extend them whenever middleware, dashboard data loading, or protected APIs change.
 
 ## Automated pipeline
 
@@ -43,8 +39,11 @@ Treat `demo=1` only as a presentation-mode flag. It must never be accepted as pr
 4. Installs dependencies with lifecycle scripts disabled.
 5. Scans the repository for exposed secrets.
 6. Fails on high or critical production dependency advisories.
-7. Type-checks the Nuxt client and server code.
-8. Builds the production application with non-production Supabase URL and publishable-key placeholders.
+7. Checks deterministic source formatting.
+8. Type-checks the Nuxt client and server code.
+9. Runs unit regression tests.
+10. Builds the production application with non-production Supabase URL and publishable-key placeholders.
+11. Runs the guest and protected-route integration checks against the built server.
 
 ### Code scanning
 

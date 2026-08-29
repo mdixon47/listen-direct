@@ -1,9 +1,11 @@
-export default defineNuxtRouteMiddleware((to) => {
-  if (to.path === '/dashboard' && to.query.demo === '1') return
+import { isGuestDashboardRoute } from "~/utils/guest-access";
 
-  const user = useSupabaseUser()
+export default defineNuxtRouteMiddleware((to) => {
+  if (isGuestDashboardRoute(to.path, to.query)) return;
+
+  const user = useSupabaseUser();
 
   if (!user.value) {
-    return navigateTo({ path: '/login', query: { redirect: to.fullPath } })
+    return navigateTo({ path: "/login", query: { redirect: to.fullPath } });
   }
-})
+});

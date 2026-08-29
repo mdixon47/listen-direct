@@ -2,6 +2,30 @@
 
 This document records meaningful product and implementation changes to Listen Direct.
 
+## 2026-08-29 — Engineering hardening and regression coverage
+
+### Fixed
+
+- Kept passwordless guest access limited to the exact `/dashboard?demo=1` route through a testable route helper.
+- Required authentication before request-body parsing on voice-turn creation and data-policy updates, so anonymous callers consistently receive an authorization failure.
+- Replaced focusable table-row behavior with a native turn button and visible keyboard focus treatment.
+- Extracted dashboard source styles and static representative data from the page into dedicated files.
+- Expanded the previously minified landing-page CSS into reviewable source formatting and added a pinned formatter.
+- Added `.nvmrc` with the supported Node.js 24.11 runtime.
+- Expanded local secret detection for npm, Slack, Stripe, Supabase, SendGrid, Google, Twilio, and Netlify token formats.
+
+### Added
+
+- Added unit tests for the exact guest-route exception and fixed-window login failure limiter.
+- Added a production-server integration test covering guest rendering, authenticated dashboard redirects, protected reads, and protected writes.
+- Added `format`, `format:check`, `test`, `test:integration`, and `verify` scripts.
+- Extended GitHub CI with formatting, unit-test, and built-server authorization-boundary gates.
+
+### Remaining boundaries
+
+- Realtime audio, distributed login throttling, full account lifecycle, durable notifications, billing, privacy deletion jobs, and deployment-specific legal review still require external services or product decisions.
+- The CSP still permits inline scripts and styles because Nuxt hydration and reactive style bindings have not yet been migrated to a nonce/hash architecture.
+
 ## 2026-08-24 — Guide-grounded AI Help Assistant
 
 ### Added

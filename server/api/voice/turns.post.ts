@@ -14,9 +14,9 @@ const turnSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const input = await readValidatedBody(event, turnSchema.parse)
   const user = await requireAppUser(event)
   if (user.role === 'demo') throw createError({ statusCode: 403, statusMessage: 'Demo turns are session-only' })
+  const input = await readValidatedBody(event, turnSchema.parse)
 
   const client = await serverSupabaseClient(event)
   const { data, error } = await client

@@ -10,6 +10,11 @@
     "dev": "nuxt dev",
     "build": "nuxt build",
     "typecheck": "nuxt typecheck",
+    "test": "node --test --experimental-strip-types tests/unit/*.test.mjs",
+    "test:integration": "node --test tests/integration/*.test.mjs",
+    "format": "prettier --write app/assets/*.css app/pages/dashboard.vue app/data/dashboard.ts app/middleware/authenticated.ts app/utils/guest-access.ts server/utils/failure-window.ts server/utils/login-rate-limit.ts scripts/security-check.mjs tests package.json .github/workflows/ci.yml",
+    "format:check": "prettier --check app/assets/*.css app/pages/dashboard.vue app/data/dashboard.ts app/middleware/authenticated.ts app/utils/guest-access.ts server/utils/failure-window.ts server/utils/login-rate-limit.ts scripts/security-check.mjs tests package.json .github/workflows/ci.yml",
+    "verify": "npm run format:check && npm run typecheck && npm test && npm run security:check && npm run build && npm run test:integration",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "security:secrets": "node scripts/security-check.mjs",
@@ -23,6 +28,7 @@
   "devDependencies": {
     "@nuxtjs/supabase": "^2.0.10",
     "@types/node": "^26.2.0",
+    "prettier": "3.6.2",
     "typescript": "^6.0.3",
     "vue-tsc": "^3.3.9"
   }

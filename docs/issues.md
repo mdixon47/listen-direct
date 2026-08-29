@@ -54,41 +54,24 @@ The cookie component records an analytics preference and emits a `listen-direct:
 
 ## Engineering issues
 
-### Guest access must remain a page-only exception
+### Resolved in the 2026-08-29 engineering pass
 
-The passwordless guest sandbox intentionally skips authentication middleware only for `/dashboard?demo=1`. It is safe because the dashboard uses seeded browser-local data and does not call protected APIs in guest mode.
+The following repository issues now have committed implementation fixes and automated gates:
 
-**Recommended fix:** add automated regression tests proving anonymous guest rendering remains available while `/api/auth/me`, `/api/voice/turns`, `/api/data-policy`, and all administrator endpoints continue returning authorization failures. Never interpret the query parameter as server authorization.
+- The guest exception is isolated in a testable helper, and the production-server integration test proves that protected read and write APIs still reject anonymous callers.
+- Unit and integration tests run locally and in CI.
+- Recent-turn interaction uses a native button instead of a focusable table row.
+- `.nvmrc` pins the supported Node.js 24.11 runtime used by CI.
+- Landing and dashboard CSS are readable source files guarded by a pinned Prettier check.
+- Dashboard styles and static representative data are no longer embedded in the page component.
+- Secret scanning covers additional vendor-token formats while retaining filename and private-key checks.
+- Protected write endpoints authenticate callers before validating request bodies.
 
-### Dashboard page is too large
+### Dashboard view is still broad
 
-`app/pages/dashboard.vue` contains data, state, behavior, markup, and styles for every dashboard view. This is acceptable for a prototype but will become difficult to maintain.
+`app/pages/dashboard.vue` no longer contains its styles or static representative datasets, but it still owns state, behavior, and markup for every dashboard view.
 
-**Recommended fix:** extract components for navigation, metrics, live console, route inspector, session explorer, model registry, evaluations, and policy controls. Move shared state into composables or a store.
-
-### Landing-page stylesheet is compiled and minified
-
-`app/assets/site.css` was preserved from the reference design. Its minified structure makes design changes and code review harder.
-
-**Recommended fix:** rewrite it as organized source CSS with design tokens, component sections, and documented responsive breakpoints.
-
-### No automated test suite
-
-The application has been production-built and its guest/authentication boundary has been checked through rendered HTTP responses, but it has no committed unit, component, or end-to-end tests.
-
-**Recommended fix:** add Vitest for state and utility logic, Vue Test Utils for components, and Playwright for routing and critical dashboard workflows.
-
-### Interactive table rows should become native controls
-
-Recent-turn table rows now expose focus, Enter, Space, and visible focus treatment, but they still rely on row-level interaction semantics.
-
-**Recommended fix:** use a real link or button inside the first column so assistive technology receives native interactive semantics without relying on a focusable table row.
-
-### Node.js 25 is unsupported by the selected Nuxt release
-
-Nuxt 4.5.2 expects Node.js 22.19+, 24.11+, or 26+. The project build succeeded in the current Node.js 25 environment, but npm reports an engine warning.
-
-**Recommended fix:** use Node.js 24 LTS locally and in CI, or Node.js 26+ when available in the deployment environment.
+**Next work:** extract navigation, metrics, live console, route inspector, session explorer, notification center, model registry, evaluations, and policy controls into focused components. Move shared dashboard behavior into composables or a store, then add component-level interaction tests.
 
 ### Content Security Policy permits inline code and styles
 
@@ -96,11 +79,11 @@ The runtime CSP blocks third-party origins, framing, and plugins, but Nuxt hydra
 
 **Recommended fix:** introduce per-request CSP nonces or hashes, move remaining inline styles to classes, verify hydration under the stricter policy, and then remove both inline allowances.
 
-### Repository secret scanning is intentionally narrow
+### Repository secret scanning remains heuristic
 
-The local scanner catches private-key material, common token formats, and sensitive filenames without uploading source code. It cannot identify every vendor token or determine whether all high-entropy strings are secrets.
+The local scanner catches private-key material, sensitive filenames, and common AWS, GitHub, OpenAI, npm, Slack, Stripe, Supabase, SendGrid, Google, Twilio, and Netlify token formats without uploading source code. It cannot identify every vendor token or determine whether all high-entropy strings are secrets.
 
-**Recommended fix:** enable GitHub secret scanning and push protection, extend patterns for future vendors, and keep deployment secrets in the hosting platform's secret manager.
+**Next work:** enable GitHub secret scanning and push protection, add patterns when new vendors are adopted, and keep deployment secrets in the hosting platform's secret manager.
 
 ## Commercial and operational gaps
 

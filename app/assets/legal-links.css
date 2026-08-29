@@ -24,8 +24,12 @@
 .admin-legal a {
   color: #687368;
   text-transform: uppercase;
-  letter-spacing: .09em;
-  font: 700 7px ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.09em;
+  font:
+    700 7px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
 }
 
 .sidebar-legal a:hover,

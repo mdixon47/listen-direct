@@ -10,9 +10,9 @@ const policySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const input = await readValidatedBody(event, policySchema.parse)
   const user = await requireAppUser(event)
   if (user.role === 'demo') throw createError({ statusCode: 403, statusMessage: 'Demo policies are read-only' })
+  const input = await readValidatedBody(event, policySchema.parse)
 
   const client = await serverSupabaseClient(event)
   const { data: current } = await client

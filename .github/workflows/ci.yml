@@ -42,8 +42,17 @@ jobs:
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
 
+      - name: Check source formatting
+        run: npm run format:check
+
       - name: Type-check Nuxt application
         run: npm run typecheck
 
+      - name: Run unit regression tests
+        run: npm test
+
       - name: Build production application with non-production Supabase placeholders
         run: npm run build
+
+      - name: Verify guest and protected route boundaries
+        run: npm run test:integration
