@@ -17,8 +17,8 @@
     "security:check": "npm run security:secrets && npm run security:audit"
   },
   "dependencies": {
-    "nuxt": "4.5.2",
-    "zod": "^4.4.3"
+    "nuxt": "4.6.1",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@nuxtjs/supabase": "^2.0.10",
