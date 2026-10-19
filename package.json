@@ -21,9 +21,9 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@nuxtjs/supabase": "^2.0.10",
-    "@types/node": "^26.2.0",
-    "typescript": "^6.0.3",
-    "vue-tsc": "^3.3.9"
+    "@nuxtjs/supabase": "^2.1.0",
+    "@types/node": "^26.6.5",
+    "typescript": "^7.0.2",
+    "vue-tsc": "^3.3.13"
   }
 }
